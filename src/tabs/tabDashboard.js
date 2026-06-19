@@ -61,40 +61,47 @@ export function render() {
   }).join('');
 
   return `
-    <div class="page-title-bar">
-      <div>
-        <h2><span class="icon">🏠</span> Mis Proyectos Solar</h2>
-        <p class="page-subtitle">Gestiona tus configuraciones y campos solares. Los proyectos se guardan localmente de forma automática.</p>
+    <div id="dashboard-root">
+      <div class="page-title-bar">
+        <div>
+          <h2><span class="icon">🏠</span> Mis Proyectos Solar</h2>
+          <p class="page-subtitle">Gestiona tus configuraciones y campos solares. Los proyectos se guardan localmente de forma automática.</p>
+        </div>
+        <div class="page-actions" style="display:flex; gap:var(--space-sm);">
+          <button class="btn btn-secondary btn-sm" id="btn-import-sol">📂 Importar .sol</button>
+          <button class="btn btn-primary btn-sm" id="btn-create-proj">➕ Nuevo Proyecto</button>
+          <input type="file" id="import-sol-input" accept=".sol,.json" style="display:none">
+        </div>
       </div>
-      <div class="page-actions" style="display:flex; gap:var(--space-sm);">
-        <button class="btn btn-secondary btn-sm" id="btn-import-sol">📂 Importar .sol</button>
-        <button class="btn btn-primary btn-sm" id="btn-create-proj">➕ Nuevo Proyecto</button>
-        <input type="file" id="import-sol-input" accept=".sol,.json" style="display:none">
+
+      <!-- Drag & Drop Import Zone -->
+      <div id="drop-zone-import" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-xl); text-align: center; background: var(--bg-card); transition: all var(--transition-fast); margin-bottom: var(--space-xl);">
+        <div style="font-size: 2.5rem; margin-bottom: var(--space-sm);">📥</div>
+        <h3 style="font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Arrastra un archivo de proyecto aquí</h3>
+        <p style="font-size: var(--text-xs); color: var(--text-tertiary);">Soporta formatos .sol y .json exportados previamente</p>
       </div>
-    </div>
 
-    <!-- Drag & Drop Import Zone -->
-    <div id="drop-zone-import" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-xl); text-align: center; background: var(--bg-card); transition: all var(--transition-fast); margin-bottom: var(--space-xl);">
-      <div style="font-size: 2.5rem; margin-bottom: var(--space-sm);">📥</div>
-      <h3 style="font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Arrastra un archivo de proyecto aquí</h3>
-      <p style="font-size: var(--text-xs); color: var(--text-tertiary);">Soporta formatos .sol y .json exportados previamente</p>
-    </div>
-
-    <div class="grid-4" style="gap: var(--space-lg);">
-      ${listHtml}
+      <div class="grid-4" style="gap: var(--space-lg);">
+        ${listHtml}
+      </div>
     </div>
   `;
 }
 
 export function init() {
-  // Toggle dropdowns
-  document.querySelectorAll('.btn-actions-proj').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  const root = document.getElementById('dashboard-root');
+  if (!root) return;
+
+  // Event Delegation for all dashboard buttons
+  root.addEventListener('click', (e) => {
+    // Dropdown toggle
+    const btnActions = e.target.closest('.btn-actions-proj');
+    if (btnActions) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = btnActions.dataset.id;
       const dropdown = document.getElementById(`dropdown-${id}`);
       
-      // Close other dropdowns
+      // Close all other dropdowns
       document.querySelectorAll('.project-dropdown').forEach(d => {
         if (d.id !== `dropdown-${id}`) d.style.display = 'none';
       });
@@ -102,86 +109,69 @@ export function init() {
       if (dropdown) {
         dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
       }
-    });
-  });
+      return;
+    }
 
-  // Close dropdowns on window click
-  window.addEventListener('click', () => {
-    document.querySelectorAll('.project-dropdown').forEach(d => d.style.display = 'none');
-  });
-
-  // Load project
-  document.querySelectorAll('.btn-load-proj').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
+    // Load project
+    const btnLoad = e.target.closest('.btn-load-proj');
+    if (btnLoad) {
+      const id = btnLoad.dataset.id;
       state.loadProject(id);
       navigateTo('panel-specs');
-    });
-  });
+      return;
+    }
 
-  // Create project
-  document.getElementById('btn-create-proj')?.addEventListener('click', () => {
-    const name = prompt('Nombre del nuevo proyecto:');
-    if (name === null) return;
-    const trimmed = name.trim();
-    const id = state.createProject(trimmed || 'Proyecto Solar');
-    navigateTo('panel-specs');
-  });
-
-  // Rename project
-  document.querySelectorAll('.btn-rename-proj').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    // Rename project
+    const btnRename = e.target.closest('.btn-rename-proj');
+    if (btnRename) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = btnRename.dataset.id;
       const projects = state.getProjects();
       const proj = projects.find(p => p.id === id);
       const name = prompt('Nuevo nombre del proyecto:', proj ? proj.name : '');
-      if (name === null) return;
-      const trimmed = name.trim();
-      if (trimmed) {
-        state.renameProject(id, trimmed);
-        navigateTo('dashboard'); // Refresh UI
+      if (name !== null) {
+        const trimmed = name.trim();
+        if (trimmed) {
+          state.renameProject(id, trimmed);
+          navigateTo('dashboard');
+        }
       }
-    });
-  });
+      return;
+    }
 
-  // Duplicate project
-  document.querySelectorAll('.btn-duplicate-proj').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    // Duplicate project
+    const btnDuplicate = e.target.closest('.btn-duplicate-proj');
+    if (btnDuplicate) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = btnDuplicate.dataset.id;
       state.duplicateProject(id);
       navigateTo('dashboard');
-    });
-  });
+      return;
+    }
 
-  // Delete project
-  document.querySelectorAll('.btn-delete-proj').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    // Delete project
+    const btnDelete = e.target.closest('.btn-delete-proj');
+    if (btnDelete) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = btnDelete.dataset.id;
       const projects = state.getProjects();
       const proj = projects.find(p => p.id === id);
       if (confirm(`¿Estás seguro de que deseas eliminar el proyecto "${proj?.name || ''}"?`)) {
         state.deleteProject(id);
         navigateTo('dashboard');
       }
-    });
-  });
+      return;
+    }
 
-  // Export project as .sol
-  document.querySelectorAll('.btn-export-proj').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    // Export project
+    const btnExport = e.target.closest('.btn-export-proj');
+    if (btnExport) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = btnExport.dataset.id;
       
-      // Momentarily load this project silently to export
       const originalActiveId = state.get('currentProjectId');
       state.loadProject(id);
-      
       const json = state.exportJSON();
-      
-      // Restore previous active
       if (originalActiveId && originalActiveId !== id) {
         state.loadProject(originalActiveId);
       }
@@ -197,19 +187,46 @@ export function init() {
       a.download = `${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.sol`;
       a.click();
       URL.revokeObjectURL(url);
+      return;
+    }
+
+    // Create project
+    const btnCreate = e.target.closest('#btn-create-proj');
+    if (btnCreate) {
+      const name = prompt('Nombre del nuevo proyecto:');
+      if (name !== null) {
+        const trimmed = name.trim();
+        state.createProject(trimmed || 'Proyecto Solar');
+        navigateTo('panel-specs');
+      }
+      return;
+    }
+
+    // Import project btn
+    const btnImport = e.target.closest('#btn-import-sol');
+    if (btnImport) {
+      document.getElementById('import-sol-input')?.click();
+      return;
+    }
+  });
+
+  // Handle window click to close dropdowns globally, bind only once
+  if (!window._dashboardClickBound) {
+    window.addEventListener('click', () => {
+      document.querySelectorAll('.project-dropdown').forEach(d => d.style.display = 'none');
     });
-  });
+    window._dashboardClickBound = true;
+  }
 
-  // Import project (.sol upload button)
+  // Handle file input for import
   const importInput = document.getElementById('import-sol-input');
-  document.getElementById('btn-import-sol')?.addEventListener('click', () => {
-    importInput?.click();
-  });
-
-  importInput?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    handleImportFile(file);
-  });
+  if (importInput) {
+    importInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      handleImportFile(file);
+      e.target.value = ''; // reset for next time
+    });
+  }
 
   // Drag and drop import zone
   const dropZone = document.getElementById('drop-zone-import');
@@ -232,8 +249,9 @@ export function init() {
       dropZone.style.borderColor = 'var(--border-primary)';
       dropZone.style.background = 'var(--bg-card)';
       
-      const file = e.dataTransfer.files[0];
-      handleImportFile(file);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleImportFile(e.dataTransfer.files[0]);
+      }
     });
   }
 }

@@ -59,14 +59,8 @@ export function render() {
           <button class="btn btn-primary" id="btn-fetch-climate">☁️ Consultar Datos Climáticos</button>
         </div>
 
-        <div id="fetch-status" class="mt-md" style="display:none;"></div>
-
         <div class="divider"></div>
-
-        <h4 style="font-size:var(--text-sm); font-weight:600; margin-bottom:var(--space-sm);">🏙️ Ubicaciones Predefinidas</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:var(--space-xs);">
-          ${renderPresetButtons()}
-        </div>
+        <div id="fetch-status" class="mt-md" style="display:none;"></div>
       </div>
 
       <div class="card">
@@ -107,20 +101,6 @@ export function render() {
       </div>
     </div>
   `;
-}
-
-function renderPresetButtons() {
-  const presets = [
-    { name: 'Madrid', lat: 40.4168, lon: -3.7038, alt: 650 },
-    { name: 'Sevilla', lat: 37.3891, lon: -5.9845, alt: 11 },
-    { name: 'Barcelona', lat: 41.3874, lon: 2.1686, alt: 12 },
-    { name: 'Valencia', lat: 39.4699, lon: -0.3763, alt: 15 },
-    { name: 'Murcia', lat: 37.9922, lon: -1.1307, alt: 43 },
-    { name: 'Almería', lat: 36.8340, lon: -2.4637, alt: 22 },
-  ];
-  return presets.map(p =>
-    `<button class="btn btn-ghost btn-sm preset-loc" data-lat="${p.lat}" data-lon="${p.lon}" data-alt="${p.alt}" data-name="${p.name}">${p.name}</button>`
-  ).join('');
 }
 
 export function init() {

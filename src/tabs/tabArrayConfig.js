@@ -150,6 +150,11 @@ export function render() {
 
         <!-- Sliders Estáticos -->
         <div id="static-angles-config" style="opacity: ${arr.trackerType === 'fixed' ? '1' : '0.4'}; pointer-events: ${arr.trackerType === 'fixed' ? 'auto' : 'none'}; transition: opacity 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-md);">
+            <div style="font-size: var(--text-xs); font-weight: 700; color: var(--solar-amber); text-transform: uppercase;">Parámetros Estáticos</div>
+            <button class="btn btn-secondary btn-sm" id="btn-calc-optimal-angle" title="Calcula el ángulo de inclinación y azimut para apuntar directamente al sol en este momento" style="background:var(--bg-tertiary);">☀️ Orientar al Sol Actual</button>
+          </div>
+          
           <div class="slider-group">
             <div class="slider-header">
               <span class="slider-label">Ángulo de Inclinación (Tilt)</span>
@@ -437,6 +442,40 @@ export function init() {
       const grid = document.getElementById('solar-park-grid');
       if (grid) grid.innerHTML = renderSolarParkGrid(freshArr, freshR, freshPanel);
       initDragAndDrop();
+    });
+  }
+
+  // Calculate Optimal Angle Button
+  const btnCalcOptimal = document.getElementById('btn-calc-optimal-angle');
+  if (btnCalcOptimal) {
+    btnCalcOptimal.addEventListener('click', () => {
+      // Calculate current solar position using solarCalc
+      const freshR = calculateAll();
+      const optimalTilt = Math.max(0, Math.min(90, Math.round(90 - freshR.sunElevation)));
+      const optimalAzimuth = Math.round(freshR.sunAzimuth);
+
+      state.set('arrayConfig.tiltAngle', optimalTilt);
+      state.set('arrayConfig.azimuthAngle', optimalAzimuth);
+
+      // Update UI explicitly for inputs since bindings trigger on input events
+      const slTilt = document.getElementById('slider-tilt');
+      const inpTilt = document.getElementById('input-tilt');
+      const dispTilt = document.getElementById('val-tilt');
+      if (slTilt) slTilt.value = optimalTilt;
+      if (inpTilt) inpTilt.value = optimalTilt;
+      if (dispTilt) dispTilt.textContent = optimalTilt;
+
+      const slAz = document.getElementById('slider-azimuth');
+      const inpAz = document.getElementById('input-azimuth');
+      const dispAz = document.getElementById('val-azimuth');
+      if (slAz) slAz.value = optimalAzimuth;
+      if (inpAz) inpAz.value = optimalAzimuth;
+      if (dispAz) dispAz.textContent = optimalAzimuth;
+
+      // Force recalculation and re-rendering of dependent widgets
+      const event = new Event('input');
+      if (slTilt) slTilt.dispatchEvent(event);
+      if (slAz) slAz.dispatchEvent(event);
     });
   }
 
