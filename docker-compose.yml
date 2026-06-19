@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Contenedor principal de la aplicación AppSolar
+  appsolar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: appsolar_frontend
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    # Exponemos el puerto 8080 internamente. Si usas Caddy/Traefik, puedes dejarlo sin mapear fuera de la red de Docker.
+    ports:
+      - "8080:80"
+    networks:
+      - appsolar_net
+
+  # Opcional: Proxy Inverso Caddy para obtener HTTPS automático en tu VPS de Ubuntu
+  # Para activarlo, descomenta las líneas siguientes y configura tu dominio.
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: appsolar_caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     - appsolar
+  #   networks:
+  #     - appsolar_net
+
+networks:
+  appsolar_net:
+    driver: overlay # O bridge si es un servidor único (host simple)
+
+# volumes:
+#   caddy_data:
+#   caddy_config:

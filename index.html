@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppSolar — Calculadora de Campo Solar Fotovoltaico</title>
+  <meta name="description" content="Aplicación profesional para ingenieros: cálculo de variables eléctricas, térmicas y de rendimiento de campos solares fotovoltaicos. Curvas I-V, temperaturas de celda, Performance Ratio y más.">
+  <meta name="keywords" content="solar, fotovoltaico, PV, calculadora, I-V curve, NOCT, performance ratio, ingeniería solar">
+  <meta name="author" content="AppSolar">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Leaflet CSS for maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+</head>
+<body>
+  <!-- Mobile menu button -->
+  <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Abrir menú">☰</button>
+  
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">☀️</div>
+          <div>
+            <h1>AppSolar</h1>
+            <div class="logo-sub">Calculadora Fotovoltaica</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <!-- Populated by router.js -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-toggle" id="theme-toggle">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label">Modo Oscuro</span>
+        </button>
+        <div class="version-text">AppSolar v1.0.0</div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <div class="tab-content" id="tab-content">
+        <!-- Tab content rendered here by router -->
+        <div class="loading-overlay">
+          <div class="spinner"></div>
+          <span>Cargando AppSolar...</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Leaflet JS for maps -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  
+  <!-- App entry point -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

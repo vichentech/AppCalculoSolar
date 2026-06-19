@@ -1,0 +1,255 @@
+/* ============================================
+   AppSolar — Tabs Navigation
+   ============================================ */
+
+/* ---------- Sidebar Navigation ---------- */
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-sm) var(--space-sm);
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gray-500);
+  padding: var(--space-md) var(--space-md) var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.nav-section-label:first-child {
+  margin-top: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--gray-400);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+.nav-item:hover {
+  color: var(--gray-200);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item.active {
+  color: #fff;
+  background: rgba(245, 158, 11, 0.15);
+  font-weight: 600;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--solar-amber);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-item .nav-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-item .nav-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--solar-amber-light);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ---------- Sidebar Footer ---------- */
+.sidebar-footer {
+  padding: var(--space-md) var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.sidebar-footer .version-text {
+  text-align: center;
+  font-size: 10px;
+  color: var(--gray-600);
+  margin-top: var(--space-sm);
+}
+
+/* ---------- Tab Content Transitions ---------- */
+.tab-panel {
+  display: none;
+  animation: fadeInUp 0.35s ease-out;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* Tab enter animation */
+@keyframes tabSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tab-panel.animating {
+  animation: tabSlideIn 0.3s ease-out;
+}
+
+/* ---------- Breadcrumb ---------- */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.breadcrumb span {
+  color: var(--text-secondary);
+}
+
+.breadcrumb .separator {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Page Title Bar ---------- */
+.page-title-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+  gap: var(--space-md);
+}
+
+.page-title-bar h2 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.page-title-bar .page-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-top: 2px;
+  max-width: 500px;
+}
+
+.page-title-bar .page-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ---------- Progress Steps ---------- */
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md) 0;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  position: relative;
+}
+
+.progress-step .step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border: 2px solid var(--border-primary);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.progress-step .step-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.progress-step.completed .step-number {
+  background: var(--solar-green);
+  border-color: var(--solar-green);
+  color: #fff;
+}
+
+.progress-step.active .step-number {
+  background: var(--solar-amber);
+  border-color: var(--solar-amber);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.progress-step.active .step-label {
+  color: var(--solar-amber);
+  font-weight: 600;
+}
+
+.progress-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--border-primary);
+  margin: 0 var(--space-xs);
+  flex-shrink: 0;
+}
+
+.progress-connector.completed {
+  background: var(--solar-green);
+}
