@@ -6,7 +6,7 @@
 import { state } from '../state.js';
 import { calculateCellTemperature } from './thermalModel.js';
 import { calculateVoltageDrop, calculateCablePowerLoss } from './cableLoss.js';
-import { getSolarPosition, calculateTrackerAngles } from './solarPosition.js';
+import { getSolarPosition, calculateTrackerAngles, angleOfIncidence, getSunriseSunset } from './solarPosition.js';
 
 // Physical constants
 export const BOLTZMANN = 1.380649e-23;  // J/K
@@ -92,17 +92,25 @@ export function calculateAll() {
   const cellTempConfig = state.get('cellTemp');
   const location = state.get('location');
   
-  const G = cond.irradiance;
-  const totalPanels = array.numStrings * array.panelsPerString;
+  const groups = array.groups || [{ id: 'g1', name: 'Grupo', numStrings: array.numStrings || 1, panelsPerString: array.panelsPerString || 1 }];
+  const totalPanels = groups.reduce((acc, g) => acc + (g.numStrings * g.panelsPerString), 0);
   const panelArea = (panel.length / 1000) * (panel.width / 1000); // m²
 
   // 1. Calculate active panel tilt and azimuth based on tracker type
   const now = new Date();
+  
+  // Set date based on day of year
+  const dayOfYear = cond.simDayOfYear || 172; 
+  now.setMonth(0);
+  now.setDate(dayOfYear);
+
   const currentHour = cond.hourOfDay !== undefined ? cond.hourOfDay : 12;
   now.setHours(Math.floor(currentHour));
   now.setMinutes(Math.round((currentHour % 1) * 60));
   
   const sunPos = getSolarPosition(location.latitude, location.longitude, now);
+  const { sunrise, sunset } = getSunriseSunset(location.latitude, location.longitude, now);
+  
   const tracker = calculateTrackerAngles(
     array.trackerType || 'fixed',
     sunPos.zenith,
@@ -116,15 +124,49 @@ export function calculateAll() {
     currentHour
   );
 
-  const activeTilt = tracker ? tracker.tilt : (array.tiltAngle || 30);
-  const activeAzimuth = tracker ? tracker.azimuth : (array.azimuthAngle || 180);
+  const activeTilt = tracker ? tracker.tilt : (array.useOptimalTilt ? Math.max(0, Math.round(location.latitude * 0.87)) : (array.tiltAngle || 30));
+  const activeAzimuth = tracker ? tracker.azimuth : (array.useOptimalTilt ? (location.latitude >= 0 ? 180 : 0) : (array.azimuthAngle || 180));
   const trackerRotation = tracker ? tracker.rotation : 0;
+
+  // Modificador de irradiancia basado en la posición solar y AOI (Angle of Incidence)
+  let G = 0;
+  let tAmb = cond.ambientTemp; // max ambient temp
+
+  if (sunPos.elevation > 0) {
+    // Irradiance curve simple model
+    const aoi = angleOfIncidence(sunPos.zenith, sunPos.azimuth, activeTilt, activeAzimuth);
+    const cosAoi = Math.max(0, Math.cos(aoi * Math.PI / 180));
+    
+    // Base envelope (atmosphere)
+    const atmTransmittance = 0.7; // simplified
+    const maxG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(sunPos.zenith * Math.PI / 180)), 0.678));
+    
+    // Normalize user's max irradiance to the zenith of the day
+    const zenithAtNoon = getSolarPosition(location.latitude, location.longitude, new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0)).zenith;
+    const peakG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(zenithAtNoon * Math.PI / 180)), 0.678));
+    
+    const timeFactor = maxG_theoretical / peakG_theoretical; 
+    
+    // Final irradiance = UserMax * TimeFactor * Cos(AOI)
+    G = cond.irradiance * Math.max(0, timeFactor) * cosAoi;
+
+    // Apply tracker reality coefficient if tracker is used
+    if (array.trackerType !== 'fixed') {
+       G = G * (array.trackerCorrection || 1.0);
+    }
+    
+    // Simulate Temperature curve (peak is around 14:00 - 15:00)
+    // Tmin is typically Tmax - 10
+    const tMin = cond.ambientTemp - 10;
+    const hourShifted = currentHour - 14.5;
+    tAmb = tMin + (cond.ambientTemp - tMin) * Math.max(0, Math.cos(hourShifted * Math.PI / 12));
+  }
 
   // 2. Cell Temperature
   const tCell = calculateCellTemperature(
     cellTempConfig.method,
-    cond.ambientTemp,
-    G,
+    tAmb, // use dynamic ambient temp
+    G,    // use dynamic irradiance
     cond.windSpeed,
     panel.noct,
     cellTempConfig
@@ -137,39 +179,60 @@ export function calculateAll() {
   const imp_adj = adjustImp(panel.imp, panel.tempCoeffIsc, tCell, G);
   const pmax_adj = adjustPmax(panel.pmax, panel.tempCoeffPmax, tCell, G);
 
-  // 4. String calculations
-  const voc_string = voc_adj * array.panelsPerString;
-  const vmp_string = vmp_adj * array.panelsPerString;
-  const isc_string = isc_adj; // Same current through series string
-  const imp_string = imp_adj;
-  const pmax_string = pmax_adj * array.panelsPerString;
+  // 4 & 5. String and Array calculations per Group
+  const groupsData = groups.map(g => {
+    const voc_string = voc_adj * g.panelsPerString;
+    const vmp_string = vmp_adj * g.panelsPerString;
+    const isc_string = isc_adj;
+    const imp_string = imp_adj;
+    const pmax_string = pmax_adj * g.panelsPerString;
+    
+    const voc_array = voc_string;
+    const vmp_array = vmp_string;
+    const isc_array = isc_string * g.numStrings;
+    const imp_array = imp_string * g.numStrings;
+    const pmax_array = pmax_string * g.numStrings;
 
-  // 5. Array calculations (strings in parallel)
-  const voc_array = voc_string; // Voltage same for parallel strings
-  const vmp_array = vmp_string;
-  const isc_array = isc_string * array.numStrings;
-  const imp_array = imp_string * array.numStrings;
-  const pmax_array = pmax_string * array.numStrings;
+    return {
+      ...g,
+      voc_string, vmp_string, isc_string, imp_string, pmax_string,
+      voc_array, vmp_array, isc_array, imp_array, pmax_array
+    };
+  });
+
+  // Global totals (Summing currents and powers. Voltages are independent per inverter)
+  const imp_total_system = groupsData.reduce((acc, g) => acc + g.imp_array, 0);
+  const pmax_total_system = groupsData.reduce((acc, g) => acc + g.pmax_array, 0);
+  
+  // Average voltage for global cable loss estimate (simplified)
+  const vmp_avg_system = groupsData.length > 0 ? groupsData.reduce((acc, g) => acc + g.vmp_array, 0) / groupsData.length : 0;
 
   // 6. Cable losses
-  const cableLoss = calculateVoltageDrop(
-    cond.cableLength,
-    imp_array,
-    cond.cableSection,
-    cond.cableMaterial
-  );
-  
-  const vmp_net = vmp_array - cableLoss.voltageDrop;
-  const vdPercent = vmp_array > 0 ? (cableLoss.voltageDrop / vmp_array) * 100 : 0;
-  
-  const cablePowerLoss = calculateCablePowerLoss(
-    cond.cableLength,
-    imp_array,
-    cond.cableSection,
-    cond.cableMaterial
-  );
+  let voltageDrop = 0;
+  let vdPercent = 0;
+  let cablePowerLoss = 0;
+  let cableResistance = 0;
 
-  const pmax_net = pmax_array - cablePowerLoss;
+  if (cond.cableLossEnabled !== false) {
+    const cableLoss = calculateVoltageDrop(
+      cond.cableLength,
+      imp_total_system,
+      cond.cableSection,
+      cond.cableMaterial
+    );
+    voltageDrop = cableLoss.voltageDrop;
+    vdPercent = vmp_avg_system > 0 ? (voltageDrop / vmp_avg_system) * 100 : 0;
+    cableResistance = cableLoss.totalResistance;
+    cablePowerLoss = calculateCablePowerLoss(
+      cond.cableLength,
+      imp_total_system,
+      cond.cableSection,
+      cond.cableMaterial
+    );
+  }
+
+  const vmp_net = vmp_avg_system - voltageDrop;
+  const pmax_net = pmax_total_system - cablePowerLoss;
 
   // 7. Efficiency and performance metrics
   const fillFactor = calculateFillFactor(vmp_adj, imp_adj, voc_adj, isc_adj);
@@ -215,25 +278,19 @@ export function calculateAll() {
     imp_adj,
     pmax_adj,
 
-    // String
-    voc_string,
-    vmp_string,
-    isc_string,
-    imp_string,
-    pmax_string,
+    // Breakdowns
+    groupsData,
 
-    // Array
-    voc_array,
-    vmp_array,
-    isc_array,
-    imp_array,
-    pmax_array,
+    // Array / System totals
     totalPanels,
+    imp_total_system,
+    pmax_total_system,
+    vmp_avg_system,
 
     // Cable
-    voltageDrop: cableLoss.voltageDrop,
+    voltageDrop,
     vdPercent,
-    cableResistance: cableLoss.totalResistance,
+    cableResistance,
     cablePowerLoss,
     vmp_net,
     pmax_net,
@@ -259,5 +316,9 @@ export function calculateAll() {
     trackerType: array.trackerType || 'fixed',
     sunElevation: sunPos.elevation,
     sunAzimuth: sunPos.azimuth,
+    
+    // Realtime conditions applied
+    G_actual: G,
+    tAmb_actual: tAmb
   };
 }

@@ -1,5 +1,5 @@
 /**
- * AppSolar — Tab: Configuración del Array Solar
+ * AppSolar — Tab: Configuración del Parque
  */
 
 import { state } from '../state.js';
@@ -7,21 +7,53 @@ import { calculateAll } from '../engine/solarCalc.js';
 
 export function render() {
   const arr = state.get('arrayConfig');
-  const panel = state.get('panelSpecs');
+  const loc = state.get('location');
   const r = calculateAll();
-  const totalPanels = arr.numStrings * arr.panelsPerString;
-  const totalPower = (totalPanels * panel.pmax / 1000).toFixed(2);
+  
+  const groups = arr.groups || [];
+  const invertersCount = groups.length;
+  const totalPanels = r.totalPanels;
+  const totalPower = (r.pmax_total_system / 1000).toFixed(2);
+  
+  // Óptimos teóricos básicos
+  const optimalTilt = Math.max(0, Math.round(loc.latitude * 0.87)); // Regla heurística común
+  const optimalAzimuth = loc.latitude >= 0 ? 180 : 0; // Sur en hemisferio norte, Norte en sur
+
+  const renderGroupRow = (g, i) => `
+    <div class="group-row" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:10px; padding:10px; background:var(--bg-card); border:1px solid var(--border-primary); border-radius:var(--radius-md);">
+      <div class="form-group" style="flex:2; margin:0;">
+        <label class="form-label" style="font-size:0.75rem;">Nombre del Grupo</label>
+        <input type="text" class="form-input ds-arr-group-input" data-idx="${i}" data-key="name" value="${g.name}">
+      </div>
+      <div class="form-group" style="flex:1; margin:0;">
+        <label class="form-label" style="font-size:0.75rem;">Strings</label>
+        <input type="number" class="form-input ds-arr-group-input" data-idx="${i}" data-key="numStrings" min="1" value="${g.numStrings}">
+      </div>
+      <div class="form-group" style="flex:1; margin:0;">
+        <label class="form-label" style="font-size:0.75rem;">Paneles/String</label>
+        <input type="number" class="form-input ds-arr-group-input" data-idx="${i}" data-key="panelsPerString" min="1" value="${g.panelsPerString}">
+      </div>
+      <div class="form-group" style="flex:0; margin:0;">
+        <button class="btn btn-ghost btn-delete-group tooltip-trigger" data-idx="${i}" data-tooltip="Eliminar Grupo" style="color:var(--solar-red); padding:8px;" ${groups.length <= 1 ? 'disabled' : ''}>🗑️</button>
+      </div>
+    </div>
+  `;
 
   return `
     <div class="page-title-bar">
       <div>
-        <h2><span class="icon">🔗</span> Configuración del Array</h2>
-        <p class="page-subtitle">Configura los parámetros eléctricos de agrupación (strings) y las estructuras mecánicas (seguidores).</p>
+        <h2><span class="icon">🔗</span> Configuración del Parque</h2>
+        <p class="page-subtitle">Configura los grupos de inversores, formato de strings, y la estructura de soporte de los paneles.</p>
       </div>
     </div>
 
     <!-- KPIs del Parque -->
     <div class="stats-row" style="margin-bottom: var(--space-lg);">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">Inversores / Grupos</div>
+        <div class="stat-value" id="stat-inverters">${invertersCount}</div>
+      </div>
       <div class="stat-card">
         <div class="stat-icon">🔢</div>
         <div class="stat-label">Total Paneles</div>
@@ -29,13 +61,11 @@ export function render() {
       </div>
       <div class="stat-card">
         <div class="stat-icon">⚡</div>
-        <div class="stat-label">Potencia Pico</div>
+        <div class="stat-label">
+          Potencia Pico Total
+          <span class="tooltip-trigger" style="margin-left:4px;" data-tooltip="Desglose:&#10;${r.groupsData ? r.groupsData.map(g => `${g.name}: ${(g.pmax_array/1000).toFixed(2)}kWp`).join('&#10;') : ''}">i</span>
+        </div>
         <div class="stat-value" id="stat-total-power">${totalPower}<span class="stat-unit">kWp</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🔗</div>
-        <div class="stat-label">Strings</div>
-        <div class="stat-value" id="stat-strings">${arr.numStrings}</div>
       </div>
       <div class="stat-card" style="border-color: var(--solar-blue);">
         <div class="stat-icon">📐</div>
@@ -44,46 +74,59 @@ export function render() {
       </div>
     </div>
 
-    <div class="accordion-container" style="display:flex; flex-direction:column; gap:var(--space-md);">
-      
-      <!-- Panel 1: Eléctrica -->
-      <details class="card details-panel" open>
-        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
-          <h3 style="font-size: var(--text-base); margin:0;">🔗 Configuración de Strings</h3>
-          <span class="details-icon">▼</span>
-        </summary>
-        <div class="details-content mt-md" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md);">
-          
-          <div class="form-group">
-            <label class="form-label">Número de Strings <span class="tooltip-trigger" data-tooltip="Cada string es un conjunto de paneles en serie.">i</span></label>
-            <input type="number" class="form-input ds-arr-input" id="input-strings" min="1" max="100" value="${arr.numStrings}" data-key="numStrings">
-          </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <!-- Pestañas -->
+      <div style="display:flex; border-bottom:1px solid var(--border-primary); background:var(--bg-tertiary); overflow-x:auto;">
+        <button class="arr-tab-btn active" data-target="tab-format" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-primary); background:none; border:none; border-bottom:3px solid var(--solar-amber); cursor:pointer; white-space:nowrap;">📏 Formato de String</button>
+        <button class="arr-tab-btn" data-target="tab-groups" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">🔌 Grupos o Inversores</button>
+        <button class="arr-tab-btn" data-target="tab-structure" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">📐 Estructura y Seguimiento</button>
+      </div>
 
-          <div class="form-group">
-            <label class="form-label">Paneles por String <span class="tooltip-trigger" data-tooltip="Módulos en serie. Define la tensión total.">i</span></label>
-            <input type="number" class="form-input ds-arr-input" id="input-panels" min="1" max="60" value="${arr.panelsPerString}" data-key="panelsPerString">
-          </div>
+      <!-- Contenedor -->
+      <div style="padding:var(--space-md);">
+        
+        <!-- Tab 1: Formato de String -->
+        <div class="arr-tab-pane active" id="tab-format">
+          <h3 style="font-size: var(--text-base); margin-bottom:var(--space-md);">📏 Formato Físico del String</h3>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md);">
+            <div class="form-group">
+              <label class="form-label">Orientación Módulos</label>
+              <select class="form-select ds-arr-select" id="select-panel-orientation" data-key="panelOrientation">
+                <option value="portrait" ${arr.panelOrientation !== 'landscape' ? 'selected' : ''}>Vertical (Portrait)</option>
+                <option value="landscape" ${arr.panelOrientation === 'landscape' ? 'selected' : ''}>Horizontal (Landscape)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Filas por Estructura</label>
+              <input type="number" class="form-input ds-arr-input" id="input-rows-structure" min="1" max="10" value="${arr.rowsPerStructure || 1}" data-key="rowsPerStructure">
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">Pitch (Distancia filas) <span class="unit">[m]</span></label>
-            <div class="form-input-with-unit">
-              <input class="form-input ds-arr-input" type="number" id="input-row-spacing" value="${arr.rowSpacing}" min="0.5" step="0.1" data-key="rowSpacing">
-              <span class="input-unit">m</span>
+            <div class="form-group">
+              <label class="form-label">Pitch (Distancia filas) <span class="unit">[m]</span></label>
+              <div class="form-input-with-unit">
+                <input class="form-input ds-arr-input" type="number" id="input-row-spacing" value="${arr.rowSpacing}" min="0.5" step="0.1" data-key="rowSpacing">
+                <span class="input-unit">m</span>
+              </div>
             </div>
           </div>
-
         </div>
-      </details>
 
-      <!-- Panel 2: Estructura y Orientación -->
-      <details class="card details-panel" open>
-        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
-          <h3 style="font-size: var(--text-base); margin:0;">📐 Estructura y Seguimiento Solar</h3>
-          <span class="details-icon">▼</span>
-        </summary>
-        <div class="details-content mt-md">
-          
-          <div class="form-group" style="max-width:300px; margin-bottom:var(--space-md);">
+        <!-- Tab 2: Grupos de Inversores -->
+        <div class="arr-tab-pane" id="tab-groups" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-md);">
+            <h3 style="font-size: var(--text-base); margin:0;">🔌 Grupos o Inversores</h3>
+            <button class="btn btn-secondary btn-sm" id="btn-add-group">➕ Añadir Grupo</button>
+          </div>
+          <div id="groups-container">
+            ${groups.map(renderGroupRow).join('')}
+          </div>
+        </div>
+
+        <!-- Tab 3: Estructura y Seguimiento -->
+        <div class="arr-tab-pane" id="tab-structure" style="display:none;">
+          <h3 style="font-size: var(--text-base); margin-bottom:var(--space-md);">📐 Estructura y Seguimiento Solar</h3>
+          <div class="form-group" style="max-width:400px; margin-bottom:var(--space-md);">
             <label class="form-label">Tipo de Estructura</label>
             <select class="form-select" id="select-tracker-type">
               <option value="fixed" ${arr.trackerType === 'fixed' ? 'selected' : ''}>Fijo (Inclinación Estática)</option>
@@ -95,20 +138,26 @@ export function render() {
           <div class="grid-2" style="gap:var(--space-lg); align-items:start;">
             <!-- Ángulos Fijos -->
             <div id="static-angles-config" style="opacity: ${arr.trackerType === 'fixed' ? '1' : '0.4'}; pointer-events: ${arr.trackerType === 'fixed' ? 'auto' : 'none'}; transition: opacity 0.2s;">
-              <div style="font-size: var(--text-xs); font-weight: 700; color: var(--solar-amber); text-transform: uppercase; margin-bottom:var(--space-sm);">Parámetros Estáticos</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-sm);">
+                <div style="font-size: var(--text-xs); font-weight: 700; color: var(--solar-amber); text-transform: uppercase;">Parámetros Estáticos</div>
+                <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px;">
+                  <input type="checkbox" id="checkbox-optimal-tilt" ${arr.useOptimalTilt ? 'checked' : ''} style="accent-color:var(--solar-amber);">
+                  Usar Óptimo (T: ${optimalTilt}°, A: ${optimalAzimuth}°)
+                </label>
+              </div>
               
               <div class="grid-2" style="gap:var(--space-md)">
                 <div class="form-group">
                   <label class="form-label">Tilt (Inclinación) <span class="unit">[°]</span></label>
                   <div class="form-input-with-unit">
-                    <input type="number" class="form-input ds-arr-input" id="input-tilt" min="0" max="90" value="${arr.tiltAngle}" data-key="tiltAngle">
+                    <input type="number" class="form-input ds-arr-input" id="input-tilt" min="0" max="90" value="${arr.useOptimalTilt ? optimalTilt : arr.tiltAngle}" data-key="tiltAngle" ${arr.useOptimalTilt ? 'disabled' : ''}>
                     <span class="input-unit">°</span>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Azimut <span class="unit">[°]</span></label>
                   <div class="form-input-with-unit">
-                    <input type="number" class="form-input ds-arr-input" id="input-azimuth" min="0" max="360" value="${arr.azimuthAngle}" data-key="azimuthAngle">
+                    <input type="number" class="form-input ds-arr-input" id="input-azimuth" min="0" max="360" value="${arr.useOptimalTilt ? optimalAzimuth : arr.azimuthAngle}" data-key="azimuthAngle" ${arr.useOptimalTilt ? 'disabled' : ''}>
                     <span class="input-unit">°</span>
                   </div>
                 </div>
@@ -116,52 +165,59 @@ export function render() {
 
               <div class="mt-md" style="text-align:center;">
                 <div id="compass-visual" style="font-size:2.5rem; line-height:1;">
-                  ${getCompassEmoji(arr.trackerType === 'fixed' ? arr.azimuthAngle : (arr.trackerType === 'axis-ns' ? 90 : r.sunAzimuth))}
+                  ${getCompassEmoji(arr.trackerType === 'fixed' ? (arr.useOptimalTilt ? optimalAzimuth : arr.azimuthAngle) : (arr.trackerType === 'axis-ns' ? 90 : r.sunAzimuth))}
                 </div>
                 <div style="color:var(--text-secondary); font-size:var(--text-xs); margin-top:4px;" id="azimuth-tracker-status">
                   ${arr.trackerType === 'fixed' 
-                    ? `Fija: <strong>${getCardinal(arr.azimuthAngle)}</strong> (${arr.azimuthAngle}°)` 
+                    ? `Fija: <strong>${getCardinal(arr.useOptimalTilt ? optimalAzimuth : arr.azimuthAngle)}</strong>` 
                     : (arr.trackerType === 'axis-ns' ? `E-W | Rotación: <strong>${r.trackerRotation.toFixed(1)}°</strong>` : `Azi: <strong>${r.sunAzimuth.toFixed(1)}°</strong> | Ele: <strong>${r.sunElevation.toFixed(1)}°</strong>`)}
                 </div>
               </div>
             </div>
 
-            <!-- Backtracking -->
-            <div id="tracker-ns-config" style="display: ${arr.trackerType === 'axis-ns' ? 'block' : 'none'}; border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-md); background: var(--bg-tertiary);">
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:var(--space-md);">
-                <input type="checkbox" id="checkbox-backtracking" ${arr.backtracking ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--solar-amber); cursor:pointer;">
-                <label for="checkbox-backtracking" style="font-weight:600; cursor:pointer; font-size:var(--text-sm);">Habilitar Backtracking</label>
+            <!-- Tracking options -->
+            <div id="tracker-config-section" style="display: ${arr.trackerType !== 'fixed' ? 'block' : 'none'}; border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-md); background: var(--bg-tertiary);">
+              
+              <div class="form-group" style="margin-bottom:var(--space-md);">
+                <label class="form-label">Coeficiente de Realidad Seguidor</label>
+                <input class="form-input ds-arr-input" type="number" step="0.01" min="0" max="1" value="${arr.trackerCorrection || 1.0}" data-key="trackerCorrection">
               </div>
 
-              <div id="backtracking-params" style="display: ${arr.backtracking ? 'block' : 'none'};">
-                <div class="grid-2" style="gap:var(--space-md)">
-                  <div class="form-group">
-                    <label class="form-label" style="font-size:0.75rem;">Hora Límite Mañana</label>
-                    <div class="form-input-with-unit">
-                      <input class="form-input ds-arr-input" type="number" step="0.5" value="${arr.backtrackingStartHour}" data-key="backtrackingStartHour">
-                      <span class="input-unit">h</span>
+              <div id="tracker-ns-config" style="display: ${arr.trackerType === 'axis-ns' ? 'block' : 'none'};">
+                <div class="divider"></div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:var(--space-md);">
+                  <input type="checkbox" id="checkbox-backtracking" ${arr.backtracking ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--solar-amber); cursor:pointer;">
+                  <label for="checkbox-backtracking" style="font-weight:600; cursor:pointer; font-size:var(--text-sm);">Habilitar Backtracking</label>
+                </div>
+
+                <div id="backtracking-params" style="display: ${arr.backtracking ? 'block' : 'none'};">
+                  <div class="grid-2" style="gap:var(--space-md)">
+                    <div class="form-group">
+                      <label class="form-label" style="font-size:0.75rem;">Hora Límite Mañana</label>
+                      <div class="form-input-with-unit">
+                        <input class="form-input ds-arr-input" type="number" step="0.5" value="${arr.backtrackingStartHour}" data-key="backtrackingStartHour">
+                        <span class="input-unit">h</span>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-size:0.75rem;">Hora Límite Tarde</label>
+                      <div class="form-input-with-unit">
+                        <input class="form-input ds-arr-input" type="number" step="0.5" value="${arr.backtrackingEndHour}" data-key="backtrackingEndHour">
+                        <span class="input-unit">h</span>
+                      </div>
                     </div>
                   </div>
-                  <div class="form-group">
-                    <label class="form-label" style="font-size:0.75rem;">Hora Límite Tarde</label>
-                    <div class="form-input-with-unit">
-                      <input class="form-input ds-arr-input" type="number" step="0.5" value="${arr.backtrackingEndHour}" data-key="backtrackingEndHour">
-                      <span class="input-unit">h</span>
-                    </div>
+                  <div class="form-group mt-sm">
+                    <label class="form-label" style="font-size:0.75rem;">Factor Corrección GCR</label>
+                    <input class="form-input ds-arr-input" type="number" step="0.01" value="${arr.backtrackingCorrection}" data-key="backtrackingCorrection">
                   </div>
-                </div>
-                <div class="form-group mt-sm">
-                  <label class="form-label" style="font-size:0.75rem;">Factor Corrección</label>
-                  <input class="form-input ds-arr-input" type="number" step="0.01" value="${arr.backtrackingCorrection}" data-key="backtrackingCorrection">
-                </div>
-                <div style="font-size:var(--text-xs); color:var(--text-tertiary); margin-top:8px;">
-                  GCR: <strong class="mono" style="color:var(--solar-blue);">${((panel.width / 1000) / (arr.rowSpacing || 6.0)).toFixed(3)}</strong>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </details>
+
+      </div>
     </div>
   `;
 }
@@ -186,29 +242,116 @@ export function init() {
   const updateKPIs = () => {
     const freshR = calculateAll();
     const arr = state.get('arrayConfig');
-    const panel = state.get('panelSpecs');
+    const loc = state.get('location');
     
-    document.getElementById('stat-total-panels').textContent = arr.numStrings * arr.panelsPerString;
-    document.getElementById('stat-total-power').innerHTML = `${(arr.numStrings * arr.panelsPerString * panel.pmax / 1000).toFixed(2)}<span class="stat-unit">kWp</span>`;
-    document.getElementById('stat-strings').textContent = arr.numStrings;
+    const optimalAzimuth = loc.latitude >= 0 ? 180 : 0;
+    const currentAzimuth = arr.useOptimalTilt ? optimalAzimuth : arr.azimuthAngle;
+    
+    document.getElementById('stat-inverters').textContent = (arr.groups || []).length;
+    document.getElementById('stat-total-panels').textContent = freshR.totalPanels;
+    
+    const statPower = document.getElementById('stat-total-power');
+    if (statPower) {
+      statPower.innerHTML = `${(freshR.pmax_total_system / 1000).toFixed(2)}<span class="stat-unit">kWp</span>`;
+      const tooltip = freshR.groupsData ? freshR.groupsData.map(g => `${g.name}: ${(g.pmax_array/1000).toFixed(2)}kWp`).join('&#10;') : '';
+      const trigger = statPower.parentElement.querySelector('.tooltip-trigger');
+      if (trigger) trigger.dataset.tooltip = `Desglose:&#10;${tooltip}`;
+    }
+
     document.getElementById('stat-tilt').innerHTML = `${freshR.activeTilt.toFixed(1)}<span class="stat-unit">°</span>`;
 
-    updateTrackerStatus(freshR, arr);
-  };
-
-  const updateTrackerStatus = (r, arr) => {
     const compass = document.getElementById('compass-visual');
-    if (compass) compass.innerHTML = getCompassEmoji(arr.trackerType === 'fixed' ? arr.azimuthAngle : (arr.trackerType === 'axis-ns' ? 90 : r.sunAzimuth));
+    if (compass) compass.innerHTML = getCompassEmoji(arr.trackerType === 'fixed' ? currentAzimuth : (arr.trackerType === 'axis-ns' ? 90 : freshR.sunAzimuth));
     
     const statusLabel = document.getElementById('azimuth-tracker-status');
     if (statusLabel) {
       statusLabel.innerHTML = arr.trackerType === 'fixed' 
-        ? `Fija: <strong>${getCardinal(arr.azimuthAngle)}</strong> (${arr.azimuthAngle}°)` 
-        : (arr.trackerType === 'axis-ns' ? `E-W | Rotación: <strong>${r.trackerRotation.toFixed(1)}°</strong>` : `Azi: <strong>${r.sunAzimuth.toFixed(1)}°</strong> | Ele: <strong>${r.sunElevation.toFixed(1)}°</strong>`);
+        ? `Fija: <strong>${getCardinal(currentAzimuth)}</strong> (${currentAzimuth}°)` 
+        : (arr.trackerType === 'axis-ns' ? `E-W | Rotación: <strong>${freshR.trackerRotation.toFixed(1)}°</strong>` : `Azi: <strong>${freshR.sunAzimuth.toFixed(1)}°</strong> | Ele: <strong>${freshR.sunElevation.toFixed(1)}°</strong>`);
     }
   };
 
-  // Bind inputs
+  // Tabs
+  document.querySelectorAll('.arr-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.arr-tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.color = 'var(--text-secondary)';
+        b.style.borderBottomColor = 'transparent';
+      });
+      document.querySelectorAll('.arr-tab-pane').forEach(p => p.style.display = 'none');
+      
+      const targetId = e.currentTarget.dataset.target;
+      e.currentTarget.classList.add('active');
+      e.currentTarget.style.color = 'var(--text-primary)';
+      e.currentTarget.style.borderBottomColor = 'var(--solar-amber)';
+      
+      const pane = document.getElementById(targetId);
+      if (pane) pane.style.display = 'block';
+    });
+  });
+
+  // Groups Logic
+  const handleGroupInputs = () => {
+    document.querySelectorAll('.ds-arr-group-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        const key = e.target.dataset.key;
+        let val = e.target.value;
+        if (key === 'numStrings' || key === 'panelsPerString') {
+          val = parseInt(val, 10) || 1;
+        }
+        
+        const currentGroups = JSON.parse(JSON.stringify(state.get('arrayConfig.groups') || []));
+        if (currentGroups[idx]) {
+          currentGroups[idx][key] = val;
+          state.set('arrayConfig.groups', currentGroups);
+          updateKPIs();
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-group').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(e.currentTarget.dataset.idx, 10);
+        const currentGroups = JSON.parse(JSON.stringify(state.get('arrayConfig.groups') || []));
+        if (currentGroups.length > 1) {
+          currentGroups.splice(idx, 1);
+          state.set('arrayConfig.groups', currentGroups);
+          const contentArea = document.getElementById('tab-content');
+          if (contentArea) {
+             contentArea.innerHTML = render();
+             init();
+             document.querySelector('[data-target="tab-groups"]').click();
+          }
+        }
+      });
+    });
+  };
+  handleGroupInputs();
+
+  const btnAdd = document.getElementById('btn-add-group');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      const currentGroups = JSON.parse(JSON.stringify(state.get('arrayConfig.groups') || []));
+      const newId = 'g' + (Date.now());
+      currentGroups.push({
+        id: newId,
+        name: `Grupo ${currentGroups.length + 1}`,
+        numStrings: 4,
+        panelsPerString: 12
+      });
+      state.set('arrayConfig.groups', currentGroups);
+      const contentArea = document.getElementById('tab-content');
+      if (contentArea) {
+         contentArea.innerHTML = render();
+         init();
+         document.querySelector('[data-target="tab-groups"]').click();
+      }
+    });
+  }
+
+  // Base Array inputs
   document.querySelectorAll('.ds-arr-input').forEach(input => {
     input.addEventListener('input', (e) => {
       const key = e.target.dataset.key;
@@ -218,6 +361,40 @@ export function init() {
     });
   });
 
+  document.querySelectorAll('.ds-arr-select').forEach(select => {
+    select.addEventListener('change', (e) => {
+      const key = e.target.dataset.key;
+      state.set(`arrayConfig.${key}`, e.target.value);
+      updateKPIs();
+    });
+  });
+
+  // Optimal Tilt Checkbox
+  const cbOptimal = document.getElementById('checkbox-optimal-tilt');
+  if (cbOptimal) {
+    cbOptimal.addEventListener('change', (e) => {
+      state.set('arrayConfig.useOptimalTilt', e.target.checked);
+      
+      const loc = state.get('location');
+      const optimalTilt = Math.max(0, Math.round(loc.latitude * 0.87));
+      const optimalAzimuth = loc.latitude >= 0 ? 180 : 0;
+      
+      const inTilt = document.getElementById('input-tilt');
+      const inAzi = document.getElementById('input-azimuth');
+      
+      if (e.target.checked) {
+        if (inTilt) { inTilt.value = optimalTilt; inTilt.disabled = true; }
+        if (inAzi) { inAzi.value = optimalAzimuth; inAzi.disabled = true; }
+        state.set('arrayConfig.tiltAngle', optimalTilt);
+        state.set('arrayConfig.azimuthAngle', optimalAzimuth);
+      } else {
+        if (inTilt) inTilt.disabled = false;
+        if (inAzi) inAzi.disabled = false;
+      }
+      updateKPIs();
+    });
+  }
+
   // Tracker Type Selector
   const trackerSelect = document.getElementById('select-tracker-type');
   if (trackerSelect) {
@@ -225,9 +402,11 @@ export function init() {
       const type = e.target.value;
       state.set('arrayConfig.trackerType', type);
       
+      const tcSection = document.getElementById('tracker-config-section');
       const nsConfig = document.getElementById('tracker-ns-config');
       const staticAngles = document.getElementById('static-angles-config');
       
+      if (tcSection) tcSection.style.display = type !== 'fixed' ? 'block' : 'none';
       if (nsConfig) nsConfig.style.display = type === 'axis-ns' ? 'block' : 'none';
       if (staticAngles) {
         staticAngles.style.opacity = type === 'fixed' ? '1' : '0.4';
@@ -248,12 +427,4 @@ export function init() {
       updateKPIs();
     });
   }
-
-  // Detail accordion icon toggles
-  document.querySelectorAll('details.details-panel').forEach(detail => {
-    detail.addEventListener('toggle', () => {
-      const icon = detail.querySelector('.details-icon');
-      if (icon) icon.style.transform = detail.open ? 'rotate(0deg)' : 'rotate(-90deg)';
-    });
-  });
 }

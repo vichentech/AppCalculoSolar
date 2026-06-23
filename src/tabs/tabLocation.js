@@ -80,9 +80,26 @@ export function render() {
 
     <div id="climate-results" style="display:${loc.apiDataLoaded ? 'block' : 'none'};">
       <div class="card mt-lg">
-        <div class="card-header">
-          <h3>☀️ Datos Mensuales de Irradiancia (PVGIS)</h3>
-          <span class="badge badge-blue">Histórico</span>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="display:inline-block; margin-right:8px;">☀️ Datos Históricos de Irradiancia y Temperatura</h3>
+            <span class="badge badge-blue">PVGIS</span>
+          </div>
+          <select id="select-climate-month" class="form-select" style="width:160px; font-size:0.8rem; padding:4px 8px; height:32px;">
+            <option value="all">Todo el Año</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
         </div>
         <div id="monthly-table-container"></div>
         <div style="height:320px; margin-top:var(--space-md);">
@@ -154,11 +171,36 @@ export function init() {
     });
   });
 
+  // Month selector
+  document.getElementById('select-climate-month')?.addEventListener('change', (e) => {
+    state.set('location.selectedMonth', e.target.value);
+    
+    // Update simulation parameters based on selected month
+    if (e.target.value !== 'all') {
+      const monthIndex = parseInt(e.target.value) - 1;
+      const monthlyData = state.get('location.monthlyData');
+      if (monthlyData && monthlyData[monthIndex]) {
+        // Set day of year roughly to middle of month
+        const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let dayOfYear = 15;
+        for (let i = 0; i < monthIndex; i++) dayOfYear += daysInMonths[i];
+        
+        state.set('conditions.simDayOfYear', dayOfYear);
+        state.set('conditions.ambientTemp', monthlyData[monthIndex].temperature);
+      }
+    }
+    
+    renderMonthlyData();
+  });
+
   // Init Leaflet map if available
   initMap();
 
   // If data already loaded, render it
   if (state.get('location.apiDataLoaded')) {
+    const sel = state.get('location.selectedMonth') || 'all';
+    const selEl = document.getElementById('select-climate-month');
+    if (selEl) selEl.value = sel;
     renderMonthlyData();
   }
 }
@@ -222,8 +264,11 @@ async function fetchClimateData() {
 }
 
 function renderMonthlyData() {
-  const monthly = state.get('location.monthlyData');
-  if (!monthly) return;
+  const allMonthly = state.get('location.monthlyData');
+  if (!allMonthly) return;
+
+  const selectedMonth = state.get('location.selectedMonth') || 'all';
+  const monthly = selectedMonth === 'all' ? allMonthly : allMonthly.filter(m => m.month === parseInt(selectedMonth));
 
   // Table
   const container = document.getElementById('monthly-table-container');
@@ -250,7 +295,7 @@ function renderMonthlyData() {
       labels: monthly.map(m => m.monthName.substring(0, 3)),
       datasets: [
         {
-          label: 'Irradiancia Inclinada (kWh/m²)',
+          label: 'Irradiancia Inclinada Mensual (kWh/m²)',
           data: monthly.map(m => m.irradiance || 0),
           backgroundColor: 'rgba(245, 158, 11, 0.7)',
           borderColor: CHART_COLORS.amber,
@@ -272,7 +317,7 @@ function renderMonthlyData() {
     },
     options: {
       scales: {
-        y: { title: { text: 'Irradiancia (kWh/m²/mes)' }, beginAtZero: true },
+        y: { title: { text: 'Irradiancia Mensual (kWh/m²/mes)' }, beginAtZero: true },
         y1: { position: 'right', title: { text: 'Temperatura (°C)' }, grid: { drawOnChartArea: false } },
         x: { title: { text: 'Mes' } },
       },

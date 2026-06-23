@@ -26,12 +26,17 @@ const defaultPanelSpecs = {
 };
 
 const defaultArrayConfig = {
-  numStrings: 4,
-  panelsPerString: 12,
+  groups: [
+    { id: 'g1', name: 'Grupo 1', numStrings: 4, panelsPerString: 12 }
+  ],
+  panelOrientation: 'portrait',
+  rowsPerStructure: 1,
   rowSpacing: 6,          // m
+  useOptimalTilt: false,
   tiltAngle: 30,          // degrees
   azimuthAngle: 180,      // degrees (180 = south)
   trackerType: 'fixed',   // fixed, axis-ns, dual-axis
+  trackerCorrection: 1.0, // reality vs theory coefficient
   backtracking: false,
   backtrackingStartHour: 9.0,
   backtrackingEndHour: 17.0,
@@ -39,15 +44,17 @@ const defaultArrayConfig = {
 };
 
 const defaultConditions = {
-  irradiance: 1000,       // W/m²
-  ambientTemp: 25,        // °C
+  irradiance: 1000,       // W/m² (Max at solar noon)
+  ambientTemp: 25,        // °C (Max at solar noon)
   windSpeed: 1,           // m/s
   humidity: 50,           // %
   albedo: 0.2,
+  cableLossEnabled: true,
   cableLength: 50,        // m
   cableSection: 6,        // mm²
   cableMaterial: 'cu',    // cu or al
   hourOfDay: 12,          // decimal hours (12 = noon)
+  simDayOfYear: 172,      // Default: Summer solstice ~June 21
 };
 
 const defaultLocation = {
@@ -78,6 +85,7 @@ const initialState = {
   cellTemp: { ...defaultCellTemp },
   pdfUploaded: false,
   pdfFileName: '',
+  savedScenarios: [],
   activeTab: 'dashboard',
   theme: localStorage.getItem('appsolar-theme') || 'dark',
 };
@@ -265,6 +273,20 @@ class StateManager {
         location: data.location || defaultLocation,
         cellTemp: data.cellTemp || defaultCellTemp,
       };
+
+      // Retrocompatibility for old arrayConfig format
+      if (projState.arrayConfig && !projState.arrayConfig.groups) {
+        projState.arrayConfig.groups = [
+          {
+            id: 'g1',
+            name: 'Grupo 1',
+            numStrings: projState.arrayConfig.numStrings || 4,
+            panelsPerString: projState.arrayConfig.panelsPerString || 12
+          }
+        ];
+        projState.arrayConfig.panelOrientation = projState.arrayConfig.panelOrientation || 'portrait';
+        projState.arrayConfig.rowsPerStructure = projState.arrayConfig.rowsPerStructure || 1;
+      }
 
       const newProj = {
         id,

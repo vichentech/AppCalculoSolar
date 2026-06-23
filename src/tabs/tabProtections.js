@@ -11,21 +11,75 @@ export function render() {
   const arr = state.get('arrayConfig');
   const panel = state.get('panelSpecs');
 
-  // Cálculos de protecciones
-  // 1. Fusibles de String DC (Típicamente Isc * 1.56, se normaliza al valor comercial superior)
-  const iscString = r.isc_string;
-  const fuseTheoretical = iscString * 1.56;
-  const fuseCommercial = getCommercialFuse(fuseTheoretical);
-
-  // 2. Interruptor General DC (Corte en carga)
-  const impArray = r.imp_array;
-  const switchDcTheoretical = impArray * 1.25;
-  const switchDcCommercial = getCommercialSwitch(switchDcTheoretical);
-
-  // 3. Tensión máxima del sistema (Voc max considerando temperatura más fría, ej. -10ºC)
-  // Simplificado: usamos Voc STC * 1.15 como margen de seguridad estándar si no calculamos exacto a -10ºC
-  const vocStringMax = r.voc_string * 1.15; 
+  // 3. Tensión máxima del sistema
   
+  const renderGroupProtections = (g) => {
+    const fuseTheoretical = g.isc_string * 1.56;
+    const fuseCommercial = getCommercialFuse(fuseTheoretical);
+    const switchDcTheoretical = g.imp_array * 1.25;
+    const switchDcCommercial = getCommercialSwitch(switchDcTheoretical);
+    const vocStringMax = g.voc_string * 1.15; 
+
+    return `
+      <div class="card mb-lg" style="border-top: 4px solid var(--solar-amber);">
+        <div class="card-header">
+          <h3>⚡ Protecciones DC (${g.name})</h3>
+          <p style="font-size:var(--text-xs); color:var(--text-secondary); margin-bottom:var(--space-sm);">
+            ${g.numStrings} Strings en paralelo | ${g.panelsPerString} Paneles/String
+          </p>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Parámetro</th>
+                <th>Cálculo / Referencia</th>
+                <th>Valor Resultante</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- FUSIBLES -->
+              <tr>
+                <td>Corriente Cortocircuito String (Isc)</td>
+                <td style="color:var(--text-secondary); font-size:var(--text-xs);">Ficha Técnica</td>
+                <td class="mono">${g.isc_string.toFixed(2)} A</td>
+              </tr>
+              <tr style="background:rgba(245, 158, 11, 0.05);">
+                <td style="font-weight:700; color:var(--solar-amber);">Fusible Comercial (Por String)</td>
+                <td style="color:var(--text-secondary); font-size:var(--text-xs);">Normalizado superior a ${fuseTheoretical.toFixed(1)}A</td>
+                <td class="mono" style="font-weight:700; color:var(--solar-amber); font-size:1.1rem;">${fuseCommercial} A</td>
+              </tr>
+              <!-- SECCIONADOR -->
+              <tr>
+                <td>Corriente Total Inversor (Imp Array)</td>
+                <td style="color:var(--text-secondary); font-size:var(--text-xs);">Suma total de Imp por string</td>
+                <td class="mono">${g.imp_array.toFixed(2)} A</td>
+              </tr>
+              <tr style="background:rgba(59, 130, 246, 0.05);">
+                <td style="font-weight:700; color:var(--solar-blue);">Seccionador General DC</td>
+                <td style="color:var(--text-secondary); font-size:var(--text-xs);">Normalizado superior a ${switchDcTheoretical.toFixed(1)}A</td>
+                <td class="mono" style="font-weight:700; color:var(--solar-blue); font-size:1.1rem;">${switchDcCommercial} A</td>
+              </tr>
+              <!-- TENSION -->
+              <tr>
+                <td>Tensión Nominal Mínima</td>
+                <td style="color:var(--text-secondary); font-size:var(--text-xs);">Voc × 1.15 (Margen Frío)</td>
+                <td class="mono">> ${vocStringMax.toFixed(0)} Vdc</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ${g.numStrings < 3 ? `
+          <div class="alert alert-info mt-md">
+            <span>ℹ️</span>
+            <div>Como solo tienes ${g.numStrings} string(s) en paralelo, normativa indica que <strong>no es obligatorio</strong> el uso de fusibles de string (aunque sí seccionador general).</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
   return `
     <div class="page-title-bar">
       <div>
@@ -34,73 +88,7 @@ export function render() {
       </div>
     </div>
 
-    <div class="grid-2" style="gap:var(--space-md); align-items:start;">
-      
-      <!-- Protecciones DC por String -->
-      <div class="card" style="border-top: 4px solid var(--solar-amber);">
-        <div class="card-header">
-          <h3>⚡ Protecciones DC (Por String)</h3>
-        </div>
-        <p style="font-size:var(--text-xs); color:var(--text-secondary); margin-bottom:var(--space-md);">
-          Se deben proteger los strings contra corrientes inversas cuando hay 3 o más strings en paralelo.
-        </p>
-
-        <div class="stats-row" style="grid-template-columns: 1fr;">
-          <div class="stat-card" style="margin-bottom:var(--space-sm);">
-            <div class="stat-icon">🔥</div>
-            <div class="stat-label">Corriente Cortocircuito (Isc)</div>
-            <div class="stat-value">${iscString.toFixed(2)}<span class="stat-unit">A</span></div>
-          </div>
-          <div class="stat-card" style="margin-bottom:var(--space-sm);">
-            <div class="stat-icon">🧮</div>
-            <div class="stat-label">Valor Teórico (Isc × 1.56)</div>
-            <div class="stat-value">${fuseTheoretical.toFixed(2)}<span class="stat-unit">A</span></div>
-          </div>
-          <div class="stat-card" style="background:rgba(245, 158, 11, 0.1); border-color:var(--solar-amber);">
-            <div class="stat-icon">🔌</div>
-            <div class="stat-label" style="color:var(--text-primary); font-weight:700;">Fusible Comercial Recomendado</div>
-            <div class="stat-value" style="color:var(--solar-amber);">${fuseCommercial}<span class="stat-unit">A</span></div>
-            <div style="font-size:10px; color:var(--text-secondary); margin-top:4px;">Tensión nominal: > ${vocStringMax.toFixed(0)} Vdc</div>
-          </div>
-        </div>
-
-        ${arr.numStrings < 3 ? `
-          <div class="alert alert-info mt-md">
-            <span>ℹ️</span>
-            <div>Como solo tienes ${arr.numStrings} string(s) en paralelo, normativa indica que <strong>no es obligatorio</strong> el uso de fusibles de string (aunque sí seccionador general).</div>
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Interruptor / Seccionador General -->
-      <div class="card" style="border-top: 4px solid var(--solar-blue);">
-        <div class="card-header">
-          <h3>📦 Seccionador General DC (Array)</h3>
-        </div>
-        <p style="font-size:var(--text-xs); color:var(--text-secondary); margin-bottom:var(--space-md);">
-          Interruptor de corte en carga para aislar el campo fotovoltaico del inversor.
-        </p>
-
-        <div class="stats-row" style="grid-template-columns: 1fr;">
-          <div class="stat-card" style="margin-bottom:var(--space-sm);">
-            <div class="stat-icon">🌊</div>
-            <div class="stat-label">Corriente Total (Imp Array)</div>
-            <div class="stat-value">${impArray.toFixed(2)}<span class="stat-unit">A</span></div>
-          </div>
-          <div class="stat-card" style="margin-bottom:var(--space-sm);">
-            <div class="stat-icon">🧮</div>
-            <div class="stat-label">Valor Teórico (Imp × 1.25)</div>
-            <div class="stat-value">${switchDcTheoretical.toFixed(2)}<span class="stat-unit">A</span></div>
-          </div>
-          <div class="stat-card" style="background:rgba(59, 130, 246, 0.1); border-color:var(--solar-blue);">
-            <div class="stat-icon">🎛️</div>
-            <div class="stat-label" style="color:var(--text-primary); font-weight:700;">Interruptor Magnetotérmico DC</div>
-            <div class="stat-value" style="color:var(--solar-blue);">${switchDcCommercial}<span class="stat-unit">A</span></div>
-            <div style="font-size:10px; color:var(--text-secondary); margin-top:4px;">Número de polos: 2 (Corte omnipolar)</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    ${(r.groupsData || []).map(renderGroupProtections).join('')}
   `;
 }
 

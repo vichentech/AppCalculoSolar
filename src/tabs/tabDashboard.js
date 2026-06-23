@@ -44,17 +44,14 @@ export function render() {
           </div>
         </div>
 
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn btn-primary btn-sm btn-load-proj" data-id="${p.id}" style="flex:1;">Cargar</button>
-          <button class="btn btn-secondary btn-sm btn-actions-proj" data-id="${p.id}">⚙️</button>
-        </div>
-        
-        <div class="project-dropdown" id="dropdown-${p.id}" style="display:none; position:absolute; bottom:55px; right:12px; background:var(--bg-card); border:1px solid var(--border-primary); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:100; min-width:140px; padding:6px 0;">
-          <button class="dropdown-item btn-rename-proj" data-id="${p.id}">✏️ Renombrar</button>
-          <button class="dropdown-item btn-duplicate-proj" data-id="${p.id}">👥 Duplicar</button>
-          <button class="dropdown-item btn-export-proj" data-id="${p.id}">💾 Exportar (.sol)</button>
-          <div style="border-top: 1px solid var(--border-primary); margin: 6px 0;"></div>
-          <button class="dropdown-item btn-delete-proj" data-id="${p.id}" style="color: var(--solar-red);">🗑️ Eliminar</button>
+        <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--border-primary);">
+          <button class="btn btn-primary btn-sm btn-load-proj" data-id="${p.id}" style="flex:1;">Abrir Proyecto</button>
+          <div style="display:flex; gap:2px;">
+            <button class="btn btn-ghost btn-rename-proj tooltip-trigger" data-id="${p.id}" data-tooltip="Renombrar" style="padding:4px 8px; border-radius:var(--radius-sm); font-size:1rem;">✏️</button>
+            <button class="btn btn-ghost btn-duplicate-proj tooltip-trigger" data-id="${p.id}" data-tooltip="Duplicar" style="padding:4px 8px; border-radius:var(--radius-sm); font-size:1rem;">👥</button>
+            <button class="btn btn-ghost btn-export-proj tooltip-trigger" data-id="${p.id}" data-tooltip="Exportar" style="padding:4px 8px; border-radius:var(--radius-sm); font-size:1rem;">💾</button>
+            <button class="btn btn-ghost btn-delete-proj tooltip-trigger" data-id="${p.id}" data-tooltip="Eliminar" style="padding:4px 8px; border-radius:var(--radius-sm); font-size:1rem; color:var(--solar-red);">🗑️</button>
+          </div>
         </div>
       </div>
     `;
@@ -94,30 +91,13 @@ export function init() {
 
   // Event Delegation for all dashboard buttons
   root.addEventListener('click', (e) => {
-    // Dropdown toggle
-    const btnActions = e.target.closest('.btn-actions-proj');
-    if (btnActions) {
-      e.stopPropagation();
-      const id = btnActions.dataset.id;
-      const dropdown = document.getElementById(`dropdown-${id}`);
-      
-      // Close all other dropdowns
-      document.querySelectorAll('.project-dropdown').forEach(d => {
-        if (d.id !== `dropdown-${id}`) d.style.display = 'none';
-      });
-      
-      if (dropdown) {
-        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-      }
-      return;
-    }
 
     // Load project
     const btnLoad = e.target.closest('.btn-load-proj');
     if (btnLoad) {
       const id = btnLoad.dataset.id;
       state.loadProject(id);
-      navigateTo('panel-specs');
+      navigateTo('panel-manual');
       return;
     }
 
@@ -197,7 +177,7 @@ export function init() {
       if (name !== null) {
         const trimmed = name.trim();
         state.createProject(trimmed || 'Proyecto Solar');
-        navigateTo('panel-specs');
+        navigateTo('panel-manual');
       }
       return;
     }
@@ -210,13 +190,7 @@ export function init() {
     }
   });
 
-  // Handle window click to close dropdowns globally, bind only once
-  if (!window._dashboardClickBound) {
-    window.addEventListener('click', () => {
-      document.querySelectorAll('.project-dropdown').forEach(d => d.style.display = 'none');
-    });
-    window._dashboardClickBound = true;
-  }
+  // No window click listener needed for dropdowns anymore
 
   // Handle file input for import
   const importInput = document.getElementById('import-sol-input');
@@ -263,7 +237,7 @@ function handleImportFile(file) {
     const projId = state.importProject(ev.target.result, file.name);
     if (projId) {
       alert('Proyecto importado con éxito.');
-      navigateTo('panel-specs');
+      navigateTo('panel-manual');
     } else {
       alert('Error: El archivo no contiene un formato de proyecto válido.');
     }

@@ -85,21 +85,6 @@ export function render() {
               </div>
             </div>
 
-            <!-- Webhook config -->
-            <div class="form-group" style="margin-top: var(--space-lg);">
-              <label class="form-label">
-                URL del Webhook N8N
-                <span class="tooltip-trigger" data-tooltip="Endpoint de tu servicio N8N. Si está en local con Docker Compose, usa http://localhost:5678. El campo es opcional si usas la URL por defecto configurada en el servidor.">i</span>
-              </label>
-              <input class="form-input" type="url" id="input-n8n-webhook"
-                value="${savedWebhook}"
-                placeholder="http://localhost:5678  (usa la URL por defecto si está vacío)"
-                style="font-size:0.8rem; padding: 6px 10px;">
-              <div style="font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 4px;">
-                URL por defecto configurada: <code style="color: var(--solar-amber);">${getN8nBaseUrl()}/webhook/datasheet/...</code>
-              </div>
-            </div>
-
             <button class="btn btn-primary btn-lg" id="btn-analyze-pdf"
               style="width:100%; margin-top: var(--space-lg);" disabled>
               🤖 Analizar PDF con IA
@@ -149,7 +134,7 @@ export function render() {
             <div class="alert alert-info" style="margin-bottom: 0;">
               <span>🔒</span>
               <div style="font-size: var(--text-xs);">
-                <strong>Privacidad</strong>: El PDF se envía directamente a tu instancia de N8N. No pasa por ningún servidor externo de VichenSolarApp.
+                <strong>Privacidad</strong>: El PDF se procesa de forma segura a través de la infraestructura interna.
               </div>
             </div>
           </div>
@@ -418,11 +403,6 @@ export function init() {
       if (fileInput.files[0]) onFileSelected(fileInput.files[0]);
     });
   }
-
-  // ── Webhook URL — persistencia ────────────────────────────────────────────
-  document.getElementById('input-n8n-webhook')?.addEventListener('input', (e) => {
-    localStorage.setItem(LS_WEBHOOK, e.target.value.trim());
-  });
 
   // ── Botón: Analizar con IA ────────────────────────────────────────────────
   document.getElementById('btn-analyze-pdf')?.addEventListener('click', () => {
