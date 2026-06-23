@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Contenedor principal de la aplicación AppSolar
+  # ─── Contenedor principal de la aplicación VichenSolarApp ───────────────────
   appsolar:
     build:
       context: .
@@ -10,14 +10,63 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    # Exponemos el puerto 8080 internamente. Si usas Caddy/Traefik, puedes dejarlo sin mapear fuera de la red de Docker.
     ports:
       - "8080:80"
     networks:
       - appsolar_net
 
-  # Opcional: Proxy Inverso Caddy para obtener HTTPS automático en tu VPS de Ubuntu
-  # Para activarlo, descomenta las líneas siguientes y configura tu dominio.
+  # ─── Servicio N8N — Orquestador de flujos IA ─────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: vichensolar_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Madrid
+      - TZ=Europe/Madrid
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_SECURE_COOKIE=false
+      # URL interna de Ollama accesible desde dentro de Docker
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # Modelo a usar (cámbialo según la RAM disponible en el VPS, ver README)
+      - OLLAMA_MODEL=qwen2.5:7b
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+    depends_on:
+      - ollama
+    networks:
+      - appsolar_net
+
+  # ─── Ollama — Motor de IA local gratuito, sin tokens ────────────────────────
+  # En tu VPS de Ubuntu instala los drivers de GPU si quieres aceleración.
+  # Con solo CPU funciona igualmente, solo más lento.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vichensolar_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"  # API REST de Ollama (compatible con OpenAI)
+    volumes:
+      # Persistencia de modelos descargados (¡son grandes, no se re-descargan!)
+      - ollama_data:/root/.ollama
+    networks:
+      - appsolar_net
+    # ── Aceleración GPU con NVIDIA (descomenta si tu VPS tiene GPU NVIDIA) ──
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ─── Proxy Inverso Caddy (descomenta para HTTPS en producción) ──────────────
   # caddy:
   #   image: caddy:2-alpine
   #   container_name: appsolar_caddy
@@ -36,8 +85,12 @@ services:
 
 networks:
   appsolar_net:
-    driver: overlay # O bridge si es un servidor único (host simple)
+    driver: bridge
 
-# volumes:
-#   caddy_data:
-#   caddy_config:
+volumes:
+  n8n_data:
+    driver: local
+  ollama_data:
+    driver: local
+  # caddy_data:
+  # caddy_config:

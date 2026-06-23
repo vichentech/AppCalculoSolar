@@ -7,14 +7,18 @@ import { state } from './state.js';
 
 const tabs = [
   { id: 'dashboard',    icon: '🏠', label: 'Mis Proyectos',       section: 'Gestión' },
-  { id: 'datasheet',    icon: '📄', label: 'Hoja de Datos',       section: 'Entrada de Datos' },
-  { id: 'panel-specs',  icon: '⚡', label: 'Especificaciones',    section: 'Entrada de Datos' },
-  { id: 'array-config', icon: '🔗', label: 'Configuración Array', section: 'Entrada de Datos' },
-  { id: 'conditions',   icon: '🌡️', label: 'Condiciones Externas', section: 'Entrada de Datos' },
-  { id: 'location',     icon: '📍', label: 'Localización GPS',    section: 'Datos Climáticos' },
-  { id: 'cell-temp',    icon: '🌡️', label: 'Temperatura Celda',    section: 'Datos Climáticos' },
-  { id: 'results',      icon: '📊', label: 'Resultados',          section: 'Análisis' },
+  
+  { id: 'datasheet',    icon: '🤖', label: 'IA Datasheet',        section: 'Entrada de Datos' },
+  { id: 'panel-manual', icon: '📝', label: 'Datasheet Manual',    section: 'Entrada de Datos' },
+  
+  { id: 'array-config', icon: '🔗', label: 'Configuración Array', section: 'Parque Solar' },
+  { id: 'conditions',   icon: '🌡️', label: 'Condiciones Externas', section: 'Parque Solar' },
+  { id: 'location',     icon: '📍', label: 'Localización GPS',    section: 'Parque Solar' },
+  { id: 'park-builder', icon: '🏗️', label: 'Diseño en Planta',    section: 'Parque Solar' },
+  
   { id: 'summary',      icon: '📋', label: 'Resumen',             section: 'Análisis' },
+  { id: 'results',      icon: '📊', label: 'Gráficas Resultados', section: 'Análisis' },
+  { id: 'protections',  icon: '🛡️', label: 'Protecciones',        section: 'Análisis' },
 ];
 
 let tabInitializers = {};

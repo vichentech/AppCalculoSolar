@@ -1,0 +1,241 @@
+{
+  "name": "VichenSolarApp — Datasheet PDF Extractor (Ollama)",
+  "nodes": [
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "datasheet/extract-models",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "webhook-extract-models",
+      "name": "Webhook: Extract Models",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 280],
+      "webhookId": "datasheet-extract-models"
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "datasheet/extract-specs",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-extract-specs",
+      "name": "Webhook: Extract Specs",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 560],
+      "webhookId": "datasheet-extract-specs"
+    },
+
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "extract-pdf-text",
+      "name": "Extraer Texto del PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [420, 280]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Preparar prompt para detección de modelos ───────────────────────────────\nconst text = $input.first().json.text || '';\n\nif (!text || text.trim().length < 50) {\n  throw new Error('El PDF no contiene suficiente texto. Es posible que sea un PDF de imágenes escaneadas (sin OCR).');\n}\n\n// Truncar a ~6000 chars para no superar el contexto del modelo\nconst truncated = text.substring(0, 6000);\n\nconst prompt = `Eres un experto en paneles solares fotovoltaicos. Analiza la siguiente ficha técnica y detecta TODOS los modelos de paneles solares disponibles en el documento.\n\nTexto de la ficha técnica:\n${truncated}\n\nInstrucciones:\n1. Identifica cada modelo de panel solar (suelen diferenciarse por la potencia pico en Watios, ej: 550W, 560W, 570W)\n2. Extrae el nombre del fabricante\n3. Para cada modelo, anota su potencia pico si la encuentras\n\nResponde ÚNICAMENTE con un objeto JSON válido (sin texto extra, sin bloques markdown), con este formato:\n{\n  \"manufacturer\": \"Nombre del fabricante\",\n  \"models\": [\n    {\n      \"modelName\": \"Nombre completo del modelo (ej: JKM550M-72HL4-V)\",\n      \"pmax\": 550,\n      \"shortDesc\": \"Descripción breve de una línea\"\n    }\n  ]\n}`;\n\nreturn [{\n  json: {\n    prompt,\n    rawText: text  // Guardamos el texto completo para el paso 2\n  }\n}];"
+      },
+      "id": "code-models-prompt",
+      "name": "Preparar Prompt: Modelos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 280]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Preparar prompt para extracción de specs de un modelo ───────────────────\nconst body = $input.first().json.body || $input.first().json;\nconst modelName = body.modelName || '';\nconst rawText = (body.rawText || '').substring(0, 8000);\n\nif (!modelName) throw new Error('Falta el parámetro modelName en el cuerpo de la petición.');\n\nconst prompt = `Eres un experto técnico en paneles solares fotovoltaicos. Extrae los parámetros eléctricos y térmicos del modelo \"${modelName}\" de la siguiente ficha técnica.\n\nTexto de la ficha técnica:\n${rawText}\n\nInstrucciones:\n- Extrae SOLO los datos correspondientes al modelo \"${modelName}\"\n- Los coeficientes de temperatura tempCoeffVoc y tempCoeffPmax son NEGATIVOS (ej: -0.272)\n- tempCoeffIsc es positivo (ej: 0.048)\n- Las dimensiones (length, width, thickness) van en milímetros\n- efficiency es el porcentaje sin el símbolo % (ej: 21.3 para 21.3%)\n- Si no encuentras un valor, usa null\n\nResponde ÚNICAMENTE con un objeto JSON válido (sin texto extra, sin bloques markdown):\n{\n  \"manufacturer\": \"nombre fabricante\",\n  \"modelName\": \"${modelName}\",\n  \"cellType\": \"monocrystalline\",\n  \"pmax\": 550,\n  \"voc\": 49.5,\n  \"isc\": 13.89,\n  \"vmp\": 41.65,\n  \"imp\": 13.21,\n  \"noct\": 45,\n  \"tempCoeffIsc\": 0.048,\n  \"tempCoeffVoc\": -0.272,\n  \"tempCoeffPmax\": -0.350,\n  \"efficiency\": 21.3,\n  \"numCells\": 144,\n  \"length\": 2278,\n  \"width\": 1134,\n  \"thickness\": 35,\n  \"weight\": 28.6,\n  \"tolerance\": 3\n}`;\n\nreturn [{ json: { prompt, modelName } }];"
+      },
+      "id": "code-specs-prompt",
+      "name": "Preparar Prompt: Specs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 560]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_BASE_URL }}/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $env.OLLAMA_MODEL }}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un asistente especializado en fichas técnicas de paneles solares fotovoltaicos. Siempre respondes ÚNICAMENTE con JSON válido, sin texto adicional ni bloques markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.prompt) }}\n    }\n  ],\n  \"stream\": false,\n  \"temperature\": 0.1,\n  \"format\": \"json\"\n}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ollama-extract-models",
+      "name": "Ollama: Detectar Modelos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 280]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_BASE_URL }}/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $env.OLLAMA_MODEL }}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un asistente especializado en fichas técnicas de paneles solares fotovoltaicos. Siempre respondes ÚNICAMENTE con JSON válido, sin texto adicional ni bloques markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.prompt) }}\n    }\n  ],\n  \"stream\": false,\n  \"temperature\": 0.1,\n  \"format\": \"json\"\n}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ollama-extract-specs",
+      "name": "Ollama: Extraer Specs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 560]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Parsear respuesta de Ollama para lista de modelos ───────────────────────\nconst rawText = $('Preparar Prompt: Modelos').first().json.rawText || '';\n\n// La respuesta viene en choices[0].message.content\nconst content = $input.first().json?.choices?.[0]?.message?.content || '';\n\nlet result;\ntry {\n  // Intentar limpiar posibles bloques markdown\n  const clean = content\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  result = JSON.parse(clean);\n} catch (e) {\n  console.error('Error al parsear JSON de Ollama:', content);\n  return [{\n    json: {\n      success: false,\n      error: 'El modelo de IA no devolvió un JSON válido. Intenta de nuevo o usa un modelo más potente.',\n      manufacturer: 'Desconocido',\n      models: [],\n      rawText\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    manufacturer: result.manufacturer || 'Desconocido',\n    models: Array.isArray(result.models) ? result.models : [],\n    rawText\n  }\n}];"
+      },
+      "id": "code-parse-models",
+      "name": "Parsear Modelos JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 280]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Parsear respuesta de Ollama para specs de un modelo ─────────────────────\nconst content = $input.first().json?.choices?.[0]?.message?.content || '';\n\nlet result;\ntry {\n  const clean = content\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  result = JSON.parse(clean);\n} catch (e) {\n  console.error('Error al parsear JSON de specs:', content);\n  return [{\n    json: {\n      success: false,\n      error: 'El modelo de IA no devolvió un JSON válido para las specs. Intenta de nuevo.'\n    }\n  }];\n}\n\n// Normalizar y validar tipos numéricos\nconst toFloat = (v) => (v !== null && v !== undefined && !isNaN(parseFloat(v))) ? parseFloat(v) : null;\nconst toInt   = (v) => (v !== null && v !== undefined && !isNaN(parseInt(v)))   ? parseInt(v)   : null;\n\nreturn [{\n  json: {\n    success: true,\n    manufacturer:   result.manufacturer  || 'Desconocido',\n    modelName:      result.modelName     || '',\n    cellType:       result.cellType      || 'monocrystalline',\n    pmax:           toFloat(result.pmax),\n    voc:            toFloat(result.voc),\n    isc:            toFloat(result.isc),\n    vmp:            toFloat(result.vmp),\n    imp:            toFloat(result.imp),\n    noct:           toFloat(result.noct),\n    tempCoeffIsc:   toFloat(result.tempCoeffIsc),\n    tempCoeffVoc:   toFloat(result.tempCoeffVoc),\n    tempCoeffPmax:  toFloat(result.tempCoeffPmax),\n    efficiency:     toFloat(result.efficiency),\n    numCells:       toInt(result.numCells),\n    length:         toFloat(result.length),\n    width:          toFloat(result.width),\n    thickness:      toFloat(result.thickness),\n    weight:         toFloat(result.weight),\n    tolerance:      toFloat(result.tolerance)\n  }\n}];"
+      },
+      "id": "code-parse-specs",
+      "name": "Parsear Specs JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 560]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "respond-models",
+      "name": "Responder: Modelos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1380, 280]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "respond-specs",
+      "name": "Responder: Specs",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1140, 560]
+    }
+
+  ],
+
+  "connections": {
+    "Webhook: Extract Models": {
+      "main": [[{ "node": "Extraer Texto del PDF", "type": "main", "index": 0 }]]
+    },
+    "Webhook: Extract Specs": {
+      "main": [[{ "node": "Preparar Prompt: Specs", "type": "main", "index": 0 }]]
+    },
+    "Extraer Texto del PDF": {
+      "main": [[{ "node": "Preparar Prompt: Modelos", "type": "main", "index": 0 }]]
+    },
+    "Preparar Prompt: Modelos": {
+      "main": [[{ "node": "Ollama: Detectar Modelos", "type": "main", "index": 0 }]]
+    },
+    "Preparar Prompt: Specs": {
+      "main": [[{ "node": "Ollama: Extraer Specs", "type": "main", "index": 0 }]]
+    },
+    "Ollama: Detectar Modelos": {
+      "main": [[{ "node": "Parsear Modelos JSON", "type": "main", "index": 0 }]]
+    },
+    "Ollama: Extraer Specs": {
+      "main": [[{ "node": "Parsear Specs JSON", "type": "main", "index": 0 }]]
+    },
+    "Parsear Modelos JSON": {
+      "main": [[{ "node": "Responder: Modelos", "type": "main", "index": 0 }]]
+    },
+    "Parsear Specs JSON": {
+      "main": [[{ "node": "Responder: Specs", "type": "main", "index": 0 }]]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "VichenSolarApp" },
+    { "name": "PDF" },
+    { "name": "Ollama" },
+    { "name": "AI-Local" }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-23T00:00:00.000Z",
+  "versionId": "2"
+}

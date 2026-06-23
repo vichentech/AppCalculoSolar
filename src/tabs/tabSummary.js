@@ -1,5 +1,5 @@
 /**
- * AppSolar — Tab: Resumen General
+ * VichenSolarApp — Tab: Resumen General
  */
 
 import { state } from '../state.js';
@@ -29,8 +29,8 @@ export function render() {
         <p class="page-subtitle">Resumen completo de la configuración y resultados del campo solar fotovoltaico.</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-export-json">💾 Exportar Proyecto (.sol)</button>
-        <button class="btn btn-secondary btn-sm" id="btn-import-json">📂 Importar Proyecto (.sol)</button>
+        <button class="btn btn-secondary btn-sm" id="btn-export-json">💾 Exportar Proyecto</button>
+        <button class="btn btn-secondary btn-sm" id="btn-import-json">📂 Importar Proyecto</button>
         <input type="file" id="import-file-input" accept=".sol,.json" style="display:none">
       </div>
     </div>
@@ -43,108 +43,121 @@ export function render() {
       <div class="alert alert-success mb-lg"><span>✅ Todos los parámetros están dentro de los rangos recomendados.</span></div>
     `}
 
-    <div class="grid-3">
+    <div class="accordion-container" style="display:flex; flex-direction:column; gap:var(--space-md);">
+      
       <!-- Panel Solar -->
-      <div class="card card-accent">
-        <div class="card-header">
-          <h3>☀️ Panel Solar</h3>
+      <details class="card details-panel" open>
+        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size: var(--text-base); margin:0;">☀️ Especificaciones del Panel Solar</h3>
+          <span class="details-icon">▼</span>
+        </summary>
+        <div class="details-content mt-md">
+          <table class="data-table">
+            <tbody>
+              <tr><td>Modelo</td><td class="mono">${panel.modelName || '—'}</td></tr>
+              <tr><td>Fabricante</td><td class="mono">${panel.manufacturer || '—'}</td></tr>
+              <tr><td>Tipo</td><td class="mono">${panel.cellType || '—'}</td></tr>
+              <tr><td>Pmax (STC)</td><td class="mono">${panel.pmax || '—'} Wp</td></tr>
+              <tr><td>Voc / Isc</td><td class="mono">${panel.voc || '—'} V / ${panel.isc || '—'} A</td></tr>
+              <tr><td>Vmp / Imp</td><td class="mono">${panel.vmp || '—'} V / ${panel.imp || '—'} A</td></tr>
+              <tr><td>NOCT</td><td class="mono">${panel.noct || '—'}°C</td></tr>
+              <tr><td>Eficiencia</td><td class="mono">${panel.efficiency || '—'}%</td></tr>
+              <tr><td>Coef. β(Voc)</td><td class="mono">${panel.tempCoeffVoc || '—'} %/°C</td></tr>
+              <tr><td>Coef. γ(Pmax)</td><td class="mono">${panel.tempCoeffPmax || '—'} %/°C</td></tr>
+              <tr><td>Dimensiones</td><td class="mono">${panel.length || '—'}×${panel.width || '—'} mm</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Modelo</td><td class="mono">${panel.modelName}</td></tr>
-            <tr><td>Fabricante</td><td class="mono">${panel.manufacturer}</td></tr>
-            <tr><td>Tipo</td><td class="mono">${panel.cellType}</td></tr>
-            <tr><td>Pmax (STC)</td><td class="mono">${panel.pmax} Wp</td></tr>
-            <tr><td>Voc / Isc</td><td class="mono">${panel.voc} V / ${panel.isc} A</td></tr>
-            <tr><td>Vmp / Imp</td><td class="mono">${panel.vmp} V / ${panel.imp} A</td></tr>
-            <tr><td>NOCT</td><td class="mono">${panel.noct}°C</td></tr>
-            <tr><td>Eficiencia</td><td class="mono">${panel.efficiency}%</td></tr>
-            <tr><td>Coef. β(Voc)</td><td class="mono">${panel.tempCoeffVoc} %/°C</td></tr>
-            <tr><td>Coef. γ(Pmax)</td><td class="mono">${panel.tempCoeffPmax} %/°C</td></tr>
-            <tr><td>Dimensiones</td><td class="mono">${panel.length}×${panel.width} mm</td></tr>
-          </tbody>
-        </table>
-      </div>
+      </details>
 
       <!-- Configuración Array -->
-      <div class="card card-accent">
-        <div class="card-header">
-          <h3>🔗 Configuración Array</h3>
+      <details class="card details-panel" open>
+        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size: var(--text-base); margin:0;">🔗 Configuración del Parque</h3>
+          <span class="details-icon">▼</span>
+        </summary>
+        <div class="details-content mt-md">
+          <table class="data-table">
+            <tbody>
+              <tr><td>Strings</td><td class="mono">${arr.numStrings}</td></tr>
+              <tr><td>Paneles/String</td><td class="mono">${arr.panelsPerString}</td></tr>
+              <tr><td>Total Paneles</td><td class="mono">${r.totalPanels}</td></tr>
+              <tr><td>Potencia Pico Total</td><td class="mono">${(r.pmax_stc_total/1000).toFixed(2)} kWp</td></tr>
+              <tr><td>Inclinación (Tilt)</td><td class="mono">${arr.tiltAngle}°</td></tr>
+              <tr><td>Azimut</td><td class="mono">${arr.azimuthAngle}°</td></tr>
+              <tr><td>Pitch (Separación filas)</td><td class="mono">${arr.rowSpacing} m</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Strings</td><td class="mono">${arr.numStrings}</td></tr>
-            <tr><td>Paneles/String</td><td class="mono">${arr.panelsPerString}</td></tr>
-            <tr><td>Total Paneles</td><td class="mono">${r.totalPanels}</td></tr>
-            <tr><td>Potencia Pico</td><td class="mono">${(r.pmax_stc_total/1000).toFixed(2)} kWp</td></tr>
-            <tr><td>Inclinación</td><td class="mono">${arr.tiltAngle}°</td></tr>
-            <tr><td>Azimut</td><td class="mono">${arr.azimuthAngle}°</td></tr>
-            <tr><td>Separación filas</td><td class="mono">${arr.rowSpacing} m</td></tr>
-          </tbody>
-        </table>
-      </div>
+      </details>
 
-      <!-- Ubicación -->
-      <div class="card card-accent">
-        <div class="card-header">
-          <h3>📍 Ubicación</h3>
+      <!-- Condiciones y Ubicación -->
+      <details class="card details-panel" open>
+        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size: var(--text-base); margin:0;">🌡️ Condiciones y 📍 Ubicación</h3>
+          <span class="details-icon">▼</span>
+        </summary>
+        <div class="details-content mt-md grid-2" style="gap:var(--space-md); align-items:start;">
+          <table class="data-table">
+            <tbody>
+              <tr><th colspan="2" style="background:var(--bg-secondary);">Condiciones Actuales</th></tr>
+              <tr><td>Irradiancia</td><td class="mono">${cond.irradiance} W/m²</td></tr>
+              <tr><td>T. Ambiente</td><td class="mono">${cond.ambientTemp}°C</td></tr>
+              <tr><td>T. Celda</td><td class="mono">${r.tCell.toFixed(1)}°C</td></tr>
+              <tr><td>Viento</td><td class="mono">${cond.windSpeed} m/s</td></tr>
+              <tr><td>Cable DC</td><td class="mono">${cond.cableLength}m × ${cond.cableSection}mm² (${cond.cableMaterial.toUpperCase()})</td></tr>
+            </tbody>
+          </table>
+          <table class="data-table">
+            <tbody>
+              <tr><th colspan="2" style="background:var(--bg-secondary);">Ubicación GPS</th></tr>
+              <tr><td>Nombre</td><td class="mono">${loc.locationName || '—'}</td></tr>
+              <tr><td>Latitud</td><td class="mono">${loc.latitude.toFixed(4)}°</td></tr>
+              <tr><td>Longitud</td><td class="mono">${loc.longitude.toFixed(4)}°</td></tr>
+              <tr><td>Altitud</td><td class="mono">${loc.altitude} m</td></tr>
+              <tr><td>Datos Climáticos (API)</td><td class="mono">${loc.apiDataLoaded ? '✅ Cargados' : '❌ No cargados'}</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Nombre</td><td class="mono">${loc.locationName}</td></tr>
-            <tr><td>Latitud</td><td class="mono">${loc.latitude.toFixed(4)}°</td></tr>
-            <tr><td>Longitud</td><td class="mono">${loc.longitude.toFixed(4)}°</td></tr>
-            <tr><td>Altitud</td><td class="mono">${loc.altitude} m</td></tr>
-            <tr><td>Datos API</td><td class="mono">${loc.apiDataLoaded ? '✅ Cargados' : '❌ No cargados'}</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="grid-2 mt-lg">
-      <!-- Condiciones -->
-      <div class="card card-accent">
-        <div class="card-header">
-          <h3>🌡️ Condiciones de Operación</h3>
-        </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Irradiancia</td><td class="mono">${cond.irradiance} W/m²</td></tr>
-            <tr><td>T. Ambiente</td><td class="mono">${cond.ambientTemp}°C</td></tr>
-            <tr><td>T. Celda</td><td class="mono">${r.tCell.toFixed(1)}°C</td></tr>
-            <tr><td>Viento</td><td class="mono">${cond.windSpeed} m/s</td></tr>
-            <tr><td>Cable DC</td><td class="mono">${cond.cableLength}m × ${cond.cableSection}mm² (${cond.cableMaterial.toUpperCase()})</td></tr>
-          </tbody>
-        </table>
-      </div>
+      </details>
 
       <!-- Resultados Clave -->
-      <div class="card" style="border:2px solid var(--solar-amber);">
-        <div class="card-header">
-          <h3>⚡ Resultados Clave</h3>
-          <span class="badge badge-amber">Calculados</span>
+      <details class="card details-panel" open style="border:2px solid var(--solar-amber);">
+        <summary class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size: var(--text-base); margin:0; color:var(--solar-amber);">⚡ Resultados Eléctricos Globales</h3>
+          <span class="details-icon" style="color:var(--solar-amber);">▼</span>
+        </summary>
+        <div class="details-content mt-md">
+          <table class="data-table">
+            <tbody>
+              <tr><td>Potencia Máxima Teórica (Pmax Array)</td><td class="mono" style="color:var(--solar-amber);font-weight:700;">${(r.pmax_array/1000).toFixed(2)} kW</td></tr>
+              <tr><td>Potencia Máxima Neta (En inversor)</td><td class="mono" style="font-weight:700;">${(r.pmax_net/1000).toFixed(2)} kW</td></tr>
+              <tr><td>Vmp de cada String</td><td class="mono">${r.vmp_string.toFixed(1)} V</td></tr>
+              <tr><td>Voc de cada String</td><td class="mono">${r.voc_string.toFixed(1)} V</td></tr>
+              <tr><td>Corriente Total (Imp Array)</td><td class="mono">${r.imp_array.toFixed(2)} A</td></tr>
+              <tr><td>Corriente Cortocircuito Total (Isc Array)</td><td class="mono">${(r.isc_string * arr.numStrings).toFixed(2)} A</td></tr>
+              <tr><td>Caída Tensión DC</td><td class="mono" style="color:var(--solar-${vdStatus.color})">${r.vdPercent.toFixed(2)}% (${vdStatus.message})</td></tr>
+              <tr><td>Fill Factor Real</td><td class="mono">${(r.fillFactor*100).toFixed(1)}%</td></tr>
+              <tr><td>Eficiencia Real del Panel</td><td class="mono">${r.panelEffReal.toFixed(1)}%</td></tr>
+              <tr><td>Performance Ratio (PR) Estimado</td><td class="mono" style="font-weight:700;">${(r.pr_estimated*100).toFixed(1)}%</td></tr>
+              <tr><td>Rendimiento Anual (Yield PVGIS)</td><td class="mono" style="color:var(--solar-green);font-weight:700;">${(r.annualYield/1000).toFixed(1)} MWh/año</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <tbody>
-            <tr><td>Pmax Array</td><td class="mono" style="color:var(--solar-amber);font-weight:700;">${(r.pmax_array/1000).toFixed(2)} kW</td></tr>
-            <tr><td>Pmax Neta</td><td class="mono" style="font-weight:700;">${(r.pmax_net/1000).toFixed(2)} kW</td></tr>
-            <tr><td>Vmp String</td><td class="mono">${r.vmp_string.toFixed(1)} V</td></tr>
-            <tr><td>Voc String</td><td class="mono">${r.voc_string.toFixed(1)} V</td></tr>
-            <tr><td>Imp Total</td><td class="mono">${r.imp_array.toFixed(2)} A</td></tr>
-            <tr><td>Caída V Cable</td><td class="mono" style="color:var(--solar-${vdStatus.color})">${r.vdPercent.toFixed(2)}% (${vdStatus.message})</td></tr>
-            <tr><td>Fill Factor</td><td class="mono">${(r.fillFactor*100).toFixed(1)}%</td></tr>
-            <tr><td>Eficiencia Real</td><td class="mono">${r.panelEffReal.toFixed(1)}%</td></tr>
-            <tr><td>PR Estimado</td><td class="mono" style="font-weight:700;">${(r.pr_estimated*100).toFixed(1)}%</td></tr>
-            <tr><td>Yield Anual</td><td class="mono" style="color:var(--solar-green);font-weight:700;">${(r.annualYield/1000).toFixed(1)} MWh/año</td></tr>
-          </tbody>
-        </table>
-      </div>
+      </details>
+
     </div>
   `;
 }
 
 export function init() {
-  // Export JSON
+  document.querySelectorAll('details.details-panel').forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      const icon = detail.querySelector('.details-icon');
+      if (icon) icon.style.transform = detail.open ? 'rotate(0deg)' : 'rotate(-90deg)';
+    });
+  });
+
   document.getElementById('btn-export-json')?.addEventListener('click', () => {
     const json = state.exportJSON();
     const projects = state.getProjects();
@@ -159,7 +172,6 @@ export function init() {
     URL.revokeObjectURL(url);
   });
 
-  // Import JSON
   const importInput = document.getElementById('import-file-input');
   document.getElementById('btn-import-json')?.addEventListener('click', () => {
     importInput?.click();
@@ -173,7 +185,6 @@ export function init() {
       const success = state.importJSON(ev.target.result);
       if (success) {
         alert('Configuración importada correctamente.');
-        // Re-render
         navigateTo('summary');
       } else {
         alert('Error al importar el archivo.');

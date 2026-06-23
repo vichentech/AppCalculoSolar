@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Entorno local (contiene claves/secretos)
+.env
+
+# Datos persistentes de N8N (generados en runtime, no versionar)
+n8n/data/

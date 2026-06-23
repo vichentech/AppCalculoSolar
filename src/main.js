@@ -1,5 +1,5 @@
 /**
- * AppSolar — Main Entry Point
+ * VichenSolarApp — Main Entry Point
  * Solar Field Calculator Application
  */
 
@@ -14,13 +14,14 @@ import { registerTab, initRouter } from './router.js';
 // Import all tab modules
 import * as tabDashboard from './tabs/tabDashboard.js';
 import * as tabDatasheet from './tabs/tabDatasheet.js';
-import * as tabPanelSpecs from './tabs/tabPanelSpecs.js';
+import * as tabPanelManual from './tabs/tabPanelManual.js';
 import * as tabArrayConfig from './tabs/tabArrayConfig.js';
 import * as tabConditions from './tabs/tabConditions.js';
 import * as tabLocation from './tabs/tabLocation.js';
-import * as tabCellTemp from './tabs/tabCellTemp.js';
+import * as tabParkBuilder from './tabs/tabParkBuilder.js';
 import * as tabResults from './tabs/tabResults.js';
 import * as tabSummary from './tabs/tabSummary.js';
+import * as tabProtections from './tabs/tabProtections.js';
 
 // Initialize application
 function initApp() {
@@ -30,13 +31,14 @@ function initApp() {
   // Register all tabs
   registerTab('dashboard', tabDashboard);
   registerTab('datasheet', tabDatasheet);
-  registerTab('panel-specs', tabPanelSpecs);
+  registerTab('panel-manual', tabPanelManual);
   registerTab('array-config', tabArrayConfig);
   registerTab('conditions', tabConditions);
   registerTab('location', tabLocation);
-  registerTab('cell-temp', tabCellTemp);
+  registerTab('park-builder', tabParkBuilder);
   registerTab('results', tabResults);
   registerTab('summary', tabSummary);
+  registerTab('protections', tabProtections);
 
   // Initialize router (renders sidebar + first tab)
   initRouter();
@@ -55,7 +57,7 @@ function initApp() {
     document.querySelector('.sidebar-overlay')?.classList.remove('visible');
   });
 
-  console.log('☀️ AppSolar initialized successfully');
+  console.log('☀️ VichenSolarApp initialized successfully');
 }
 
 function toggleTheme() {

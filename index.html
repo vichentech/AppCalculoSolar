@@ -3,14 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AppSolar — Calculadora de Campo Solar Fotovoltaico</title>
+  <title>VichenSolarApp — Calculadora de Campo Solar Fotovoltaico</title>
   <meta name="description" content="Aplicación profesional para ingenieros: cálculo de variables eléctricas, térmicas y de rendimiento de campos solares fotovoltaicos. Curvas I-V, temperaturas de celda, Performance Ratio y más.">
   <meta name="keywords" content="solar, fotovoltaico, PV, calculadora, I-V curve, NOCT, performance ratio, ingeniería solar">
-  <meta name="author" content="AppSolar">
+  <meta name="author" content="VichenSolarApp">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   
-  <!-- Leaflet CSS for maps -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <!-- Open-Meteo & PVGIS Icons/Fonts if needed -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS & JS for Interactive Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
   <!-- Mobile menu button -->
@@ -26,7 +32,7 @@
         <div class="sidebar-logo">
           <div class="logo-icon">☀️</div>
           <div>
-            <h1>AppSolar</h1>
+            <h1>VichenSolarApp</h1>
             <div class="logo-sub">Calculadora Fotovoltaica</div>
           </div>
         </div>
@@ -41,7 +47,7 @@
           <span id="theme-icon">🌙</span>
           <span id="theme-label">Modo Oscuro</span>
         </button>
-        <div class="version-text">AppSolar v1.0.0</div>
+        <div class="version-text">VichenSolarApp v1.0.0</div>
       </div>
     </aside>
 
@@ -51,7 +57,7 @@
         <!-- Tab content rendered here by router -->
         <div class="loading-overlay">
           <div class="spinner"></div>
-          <span>Cargando AppSolar...</span>
+          <span>Cargando VichenSolarApp...</span>
         </div>
       </div>
     </main>
