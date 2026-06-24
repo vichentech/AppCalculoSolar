@@ -64,34 +64,55 @@ export function render() {
         <h2><span class="icon">🏗️</span> Diseño en Planta del Parque Solar</h2>
         <p class="page-subtitle">Dibuja la parcela, posiciona los inversores y distribuye los strings con precisión. <br><em>Consejo: Usa <strong>Shift + Clic</strong> en el mapa para seleccionar múltiples elementos.</em></p>
       </div>
-      <div class="page-actions" style="display:flex; gap:12px; align-items:center;">
-        <label style="display:flex; align-items:center; gap:4px; font-size:0.8rem; cursor:pointer;">
-          <input type="checkbox" id="check-lock-map" ${isMapLocked ? 'checked' : ''} style="accent-color:var(--solar-amber);"> Fijar Vista Mapa
+      <div class="page-actions" style="display:flex; gap:16px; align-items:center;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; background:var(--bg-tertiary); padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-primary);">
+          <input type="checkbox" id="check-lock-map" ${isMapLocked ? 'checked' : ''} style="accent-color:var(--solar-amber);"> Fijar Mapa
         </label>
-        <button class="btn btn-secondary btn-sm" id="btn-clear-map">🗑️ Limpiar Mapa</button>
+        <button class="btn ${globalShowInspector ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-inspector" title="Mostrar/Ocultar Panel de Propiedades" style="padding:6px 12px;">⚙️ Props</button>
+        <button class="btn ${globalShowTelemetry ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-telemetry" title="Mostrar/Ocultar Parámetros Eléctricos" style="padding:6px 12px;">📊 Params</button>
+        <button class="btn btn-secondary tooltip-trigger" id="btn-clear-map" data-tooltip="Borrar todos los elementos del mapa" style="padding:6px 12px;">🗑️ Limpiar</button>
       </div>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: var(--space-md); height: calc(100vh - 180px); min-height: 500px;">
       
       <!-- Barra superior de herramientas -->
-      <div class="card" style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--space-lg); padding:var(--space-md) var(--space-lg);">
-        <div style="display:flex; align-items:center; gap:var(--space-sm); height:100%;">
-          <button class="btn btn-secondary" id="btn-draw-area" style="border-style:dashed;">
-            ${drawingArea ? 'Finalizar Dibujo' : '📐 Dibujar Parcela'}
-          </button>
-        </div>
+      <div class="card" style="display:flex; align-items:center; flex-wrap:nowrap; overflow-x:auto; gap:var(--space-md); padding:var(--space-sm) var(--space-md);">
         
-        <div style="width:1px; height:40px; background:var(--border-primary);"></div>
+        <button class="btn btn-secondary btn-sm" id="btn-draw-area" style="border-style:dashed; white-space:nowrap; flex-shrink:0;">
+          ${drawingArea ? 'Finalizar Dibujo' : '📐 Dibujar Parcela'}
+        </button>
         
-        <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-          <span style="font-size:var(--text-xs); color:var(--text-secondary); font-weight:600; text-transform:uppercase;">Herramientas de Elemento:</span>
-          <div id="group-buttons-container" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+        ${areaPoints.length > 2 ? `<div id="polygon-area-info" style="font-size:0.75rem; color:var(--text-secondary); text-align:center; flex-shrink:0;">Sup: ${getPolygonArea(areaPoints).toLocaleString('es-ES', {maximumFractionDigits:0})} m²</div>` : '<div id="polygon-area-info" style="display:none;"></div>'}
+        
+        <div style="width:1px; height:24px; background:var(--border-primary); flex-shrink:0;"></div>
+        
+        <div id="group-buttons-container" style="display:flex; align-items:center; flex-wrap:nowrap; gap:8px; flex:1;">
+          <div style="display:flex; align-items:center; gap:8px; background:var(--bg-secondary); padding:6px 10px; border-radius:6px; border:1px solid var(--border-primary); flex-shrink:0;">
             ${selectHtml}
-            <button class="btn btn-secondary" id="btn-insert-all" title="Inserta todos los elementos restantes de una vez">⚡ Insertar Todos</button>
-            <div style="width:1px; height:24px; background:var(--border-primary); margin:0 4px;"></div>
-            <button class="btn ${globalShowInspector ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-inspector" title="Mostrar/Ocultar Panel de Propiedades">⚙️ Propiedades</button>
-            <button class="btn ${globalShowTelemetry ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-telemetry" title="Mostrar/Ocultar Parámetros Eléctricos">📊 Parámetros</button>
+            <div style="width:1px; height:20px; background:var(--border-primary); margin:0 4px;"></div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);" title="Azimut">Azi:</span>
+              <input type="number" id="input-default-azimuth" class="form-input form-input-sm" value="270" style="width:55px; padding:4px; font-size:0.85rem; text-align:center;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">°</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">Filas:</span>
+              <select id="select-matrix-rows" class="form-select form-select-sm" style="width:55px; padding:4px; font-size:0.85rem;">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);" title="Distancia N-S">↕ Gap:</span>
+              <input type="number" id="input-row-gap" class="form-input form-input-sm" value="2" style="width:70px; padding:4px; font-size:0.85rem; text-align:center;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);" title="Distancia E-W">↔ Gap:</span>
+              <input type="number" id="input-col-gap" class="form-input form-input-sm" value="0.5" style="width:70px; padding:4px; font-size:0.85rem; text-align:center;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">m</span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-insert-all" title="Insertar todos" style="padding:4px 10px; margin-left:4px;">⚡ Todos</button>
           </div>
         </div>
       </div>
@@ -188,8 +209,9 @@ export function init() {
 
     document.getElementById('btn-toggle-inspector')?.addEventListener('click', () => {
       globalShowInspector = !globalShowInspector;
-      updateToolbarButtons();
-      if (globalShowInspector && selectedElementIds.length > 0) {
+      const btnInsp = document.getElementById('btn-toggle-inspector');
+      if (btnInsp) btnInsp.className = `btn ${globalShowInspector ? 'btn-primary' : 'btn-secondary'}`;
+      if (globalShowInspector && (selectedElementIds.length > 0 || areaPoints.length > 2)) {
         showInspector();
       } else {
         hideInspector();
@@ -198,7 +220,8 @@ export function init() {
 
     document.getElementById('btn-toggle-telemetry')?.addEventListener('click', () => {
       globalShowTelemetry = !globalShowTelemetry;
-      updateToolbarButtons();
+      const btnTel = document.getElementById('btn-toggle-telemetry');
+      if (btnTel) btnTel.className = `btn ${globalShowTelemetry ? 'btn-primary' : 'btn-secondary'}`;
       updateAllVisuals();
     });
   };
@@ -211,8 +234,10 @@ export function init() {
       selectedElementIds = [];
       if (areaPolygonLayer) mapInstance.removeLayer(areaPolygonLayer);
       if (areaTempLine) mapInstance.removeLayer(areaTempLine);
+      if (parcelDragMarker) mapInstance.removeLayer(parcelDragMarker);
       areaPoints = [];
       areaPolygonLayer = null;
+      parcelDragMarker = null;
       hideInspector();
       updateToolbarButtons();
     }
@@ -230,7 +255,10 @@ export function init() {
     if (drawingArea) {
       if (areaPolygonLayer) mapInstance.removeLayer(areaPolygonLayer);
       if (areaTempLine) mapInstance.removeLayer(areaTempLine);
+      if (parcelDragMarker) mapInstance.removeLayer(parcelDragMarker);
       areaPoints = [];
+      parcelDragMarker = null;
+      document.getElementById('polygon-area-info').textContent = '';
       selectedElementIds = [];
       updateAllVisuals();
       hideInspector();
@@ -306,16 +334,42 @@ function updateToolbarButtons() {
   });
 
   const selectHtml = groupOptions.length > 0 
-    ? `<select class="form-select" id="select-insert-element" style="width:250px;">${groupOptions.join('')}</select>
-       <button class="btn btn-primary" id="btn-insert-element">Insertar Elemento</button>`
-    : `<span style="color:var(--text-tertiary); font-size:0.8rem;">Todos los elementos posicionados.</span>`;
+    ? `<div style="display:flex; align-items:center; gap:4px;">
+         <select class="form-select form-select-sm" id="select-insert-element" style="width:160px; font-size:0.8rem;">${groupOptions.join('')}</select>
+         <button class="btn btn-primary btn-sm" id="btn-insert-element" style="padding:4px 8px;">➕ 1</button>
+       </div>`
+    : `<span style="color:var(--text-tertiary); font-size:0.8rem;">Todos listos.</span>`;
   
+  const currentAzi = document.getElementById('input-default-azimuth')?.value || "270";
+  const currentRows = document.getElementById('select-matrix-rows')?.value || "1";
+
   container.innerHTML = `
-    ${selectHtml}
-    <button class="btn btn-secondary" id="btn-insert-all" title="Inserta todos los elementos restantes de una vez">⚡ Insertar Todos</button>
-    <div style="width:1px; height:24px; background:var(--border-primary); margin:0 4px;"></div>
-    <button class="btn ${globalShowInspector ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-inspector" title="Mostrar/Ocultar Panel de Propiedades">⚙️ Propiedades</button>
-    <button class="btn ${globalShowTelemetry ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-telemetry" title="Mostrar/Ocultar Parámetros Eléctricos">📊 Parámetros</button>
+    <div style="display:flex; align-items:center; gap:8px; background:var(--bg-secondary); padding:6px 10px; border-radius:6px; border:1px solid var(--border-primary); flex-shrink:0;">
+      ${selectHtml}
+      <div style="width:1px; height:20px; background:var(--border-primary); margin:0 4px;"></div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);" title="Azimut">Azi:</span>
+        <input type="number" id="input-default-azimuth" class="form-input form-input-sm" value="${currentAzi}" style="width:55px; padding:4px; font-size:0.85rem; text-align:center;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);">°</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);">Filas:</span>
+        <select id="select-matrix-rows" class="form-select form-select-sm" style="width:55px; padding:4px; font-size:0.85rem;">
+          <option value="1" ${currentRows==="1"?"selected":""}>1</option>
+          <option value="2" ${currentRows==="2"?"selected":""}>2</option>
+          <option value="3" ${currentRows==="3"?"selected":""}>3</option>
+          <option value="4" ${currentRows==="4"?"selected":""}>4</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);" title="Distancia N-S">↕ Gap:</span>
+        <input type="number" id="input-row-gap" class="form-input form-input-sm" value="${document.getElementById('input-row-gap')?.value || 2}" style="width:70px; padding:4px; font-size:0.85rem; text-align:center;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);" title="Distancia E-W">↔ Gap:</span>
+        <input type="number" id="input-col-gap" class="form-input form-input-sm" value="${document.getElementById('input-col-gap')?.value || 0.5}" style="width:70px; padding:4px; font-size:0.85rem; text-align:center;">
+        <span style="font-size:0.8rem; color:var(--text-secondary);">m</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-insert-all" title="Insertar todos" style="padding:4px 10px; margin-left:4px;">⚡ Todos</button>
+    </div>
   `;
   
   // Re-bind
@@ -336,21 +390,7 @@ function updateToolbarButtons() {
     insertAllMissingElements();
   });
 
-  document.getElementById('btn-toggle-inspector')?.addEventListener('click', () => {
-    globalShowInspector = !globalShowInspector;
-    updateToolbarButtons();
-    if (globalShowInspector && selectedElementIds.length > 0) {
-      showInspector();
-    } else {
-      hideInspector();
-    }
-  });
-
-  document.getElementById('btn-toggle-telemetry')?.addEventListener('click', () => {
-    globalShowTelemetry = !globalShowTelemetry;
-    updateToolbarButtons();
-    updateAllVisuals();
-  });
+  // Event listeners removed from here. They are only bound once in init().
 }
 
 function initLeafletMap() {
@@ -375,15 +415,21 @@ function initLeafletMap() {
     if (drawingArea) {
       areaPoints.push(e.latlng);
       if (areaPoints.length === 1) {
-        areaTempLine = L.polyline([e.latlng, e.latlng], {color: 'red', dashArray: '5, 5'}).addTo(mapInstance);
+        areaTempLine = L.polyline([e.latlng, e.latlng], {color: '#FACC15', dashArray: '5, 5'}).addTo(mapInstance);
       } else {
         areaTempLine.setLatLngs(areaPoints);
       }
     } else {
-      // Si hacemos clic en el mapa vacío (sin arrastrar), deseleccionar
       selectedElementIds = [];
+      if (areaPolygonLayer) {
+        selectedElementIds = ['parcel'];
+      }
       updateAllVisuals();
-      hideInspector();
+      if (globalShowInspector && selectedElementIds.length > 0) {
+        showInspector();
+      } else {
+        hideInspector();
+      }
     }
   });
 
@@ -410,17 +456,67 @@ function initLeafletMap() {
   }
   
   if (areaPoints.length > 0) {
-     areaPolygonLayer = L.polygon(areaPoints, {color: 'orange', fillOpacity: 0.1, weight: 2}).addTo(mapInstance);
+     areaPolygonLayer = L.polygon(areaPoints, {color: '#FACC15', fillOpacity: 0.3, weight: 3}).addTo(mapInstance);
   }
 
   hideInspector();
 }
 
+let parcelDragMarker = null;
+
 function finishDrawing() {
   if (areaPoints.length > 2) {
-    areaPolygonLayer = L.polygon(areaPoints, {color: 'orange', fillOpacity: 0.1, weight: 2}).addTo(mapInstance);
+    areaPolygonLayer = L.polygon(areaPoints, {color: '#FACC15', fillOpacity: 0.3, weight: 3}).addTo(mapInstance);
+    
+    // Add drag marker for the parcel
+    const center = areaPolygonLayer.getBounds().getCenter();
+    parcelDragMarker = L.marker(center, {
+      draggable: true,
+      icon: L.divIcon({
+        className: '', 
+        html: '<div style="font-size:24px; cursor:move; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🎯</div>', 
+        iconSize: [24, 24], 
+        iconAnchor: [12, 12]
+      })
+    }).addTo(mapInstance);
+
+    let lastPos = center;
+    parcelDragMarker.on('drag', (e) => {
+       const newPos = e.latlng;
+       const dLat = newPos.lat - lastPos.lat;
+       const dLng = newPos.lng - lastPos.lng;
+       areaPoints = areaPoints.map(p => L.latLng(p.lat + dLat, p.lng + dLng));
+       areaPolygonLayer.setLatLngs(areaPoints);
+       lastPos = newPos;
+    });
+
+    const area = getPolygonArea(areaPoints);
+    const areaInfo = document.getElementById('polygon-area-info');
+    if (areaInfo) areaInfo.textContent = `Superficie: ${area.toLocaleString('es-ES', {maximumFractionDigits:0})} m²`;
   }
   if (areaTempLine) mapInstance.removeLayer(areaTempLine);
+}
+
+function getPolygonArea(latLngs) {
+  if (!latLngs || latLngs.length < 3) return 0;
+  let centerLat = 0;
+  for (const p of latLngs) centerLat += p.lat;
+  centerLat /= latLngs.length;
+  
+  const latToMeters = 111320;
+  const lonToMeters = 111320 * Math.cos(centerLat * Math.PI / 180);
+  
+  let area = 0;
+  for (let i = 0; i < latLngs.length; i++) {
+    const p1 = latLngs[i];
+    const p2 = latLngs[(i + 1) % latLngs.length];
+    const x1 = p1.lng * lonToMeters;
+    const y1 = p1.lat * latToMeters;
+    const x2 = p2.lng * lonToMeters;
+    const y2 = p2.lat * latToMeters;
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area / 2);
 }
 
 function addElementToMap(type, groupId) {
@@ -433,7 +529,9 @@ function addElementToMap(type, groupId) {
   if (!groupDef) return;
 
   const optimalAzimuth = state.get('location').latitude >= 0 ? 180 : 0;
-  let azimuth = arrConfig.useOptimalTilt ? optimalAzimuth : arrConfig.azimuthAngle;
+  const inputAzi = document.getElementById('input-default-azimuth');
+  const defaultAzi = inputAzi ? parseFloat(inputAzi.value) : 270;
+  let azimuth = defaultAzi;
   let color = type === 'string' ? '#f59e0b' : '#3b82f6';
 
   const lastEl = [...parkElements].reverse().find(e => e.type === type);
@@ -479,6 +577,9 @@ function insertAllMissingElements() {
   const arrConfig = state.get('arrayConfig');
   const groups = arrConfig.groups || [];
   
+  const matrixRowsSelect = document.getElementById('select-matrix-rows');
+  const numRowsMatrix = matrixRowsSelect ? parseInt(matrixRowsSelect.value) || 1 : 1;
+  
   let startLatLng = mapInstance.getCenter();
   const lastEl = parkElements[parkElements.length - 1];
   if (lastEl) {
@@ -486,13 +587,23 @@ function insertAllMissingElements() {
   }
 
   const optimalAzimuth = state.get('location').latitude >= 0 ? 180 : 0;
-  const pitchMeters = parseFloat(arrConfig.pitch) || 5;
+  
+  const rowGap = parseFloat(document.getElementById('input-row-gap')?.value) || 2;
+  const colGap = parseFloat(document.getElementById('input-col-gap')?.value) || 0.5;
 
   let currentLat = startLatLng.lat;
-  const currentLon = startLatLng.lng;
+  let currentLon = startLatLng.lng;
   
   const latMeters = 111320;
-  const deltaLat = pitchMeters / latMeters;
+  const lonMeters = 111320 * Math.cos(currentLat * Math.PI / 180);
+
+  const panel = state.get('panelSpecs');
+  const wPanel = (panel.width || 1134) / 1000;
+  const lPanel = (panel.length || 2278) / 1000;
+  const orientation = arrConfig.panelOrientation || 'portrait';
+  const rowsPerStructure = arrConfig.rowsPerStructure || 1;
+  const wMeters = orientation === 'landscape' ? lPanel : wPanel;
+  const lMeters = orientation === 'landscape' ? wPanel : lPanel;
 
   let addedAny = false;
 
@@ -500,31 +611,68 @@ function insertAllMissingElements() {
     // Strings
     const placedStr = parkElements.filter(e => e.type === 'string' && e.data.groupId === g.id).length;
     const missingStr = g.numStrings - placedStr;
-    for (let i = 0; i < missingStr; i++) {
-      currentLat -= deltaLat;
-      
-      const lastStr = [...parkElements].reverse().find(e => e.type === 'string');
-      const azi = lastStr ? lastStr.data.azimuth : (arrConfig.useOptimalTilt ? optimalAzimuth : arrConfig.azimuthAngle);
-      const col = lastStr ? lastStr.data.color : '#f59e0b';
-      
-      const newPlaced = parkElements.filter(e => e.type === 'string' && e.data.groupId === g.id).length + 1;
-      const name = `${g.name} - String ${newPlaced}`;
-      
-      const el = {
-        id: `string_${Date.now()}_${Math.random()}`,
-        type: 'string',
-        data: { groupId: g.id, azimuth: azi, name: name, color: col, locked: false, hideTelemetry: false },
-        latlng: L.latLng(currentLat, currentLon),
-        layer: null
-      };
-      parkElements.push(el);
-      addedAny = true;
+    
+    const panelsPerString = g.panelsPerString || 1;
+    const colsPerString = Math.ceil(panelsPerString / rowsPerStructure);
+    const structureWidthMeters = colsPerString * wMeters; 
+    const structureLengthMeters = rowsPerStructure * lMeters; 
+
+    const inputAzi = document.getElementById('input-default-azimuth');
+    const defaultAzi = inputAzi ? parseFloat(inputAzi.value) : 270;
+    
+    // Convert azimuth to radians and calculate effective dimensions (projection)
+    const rad = (defaultAzi - 180) * Math.PI / 180;
+    const effLengthMeters = Math.abs(structureWidthMeters * Math.sin(rad)) + Math.abs(structureLengthMeters * Math.cos(rad));
+    const effWidthMeters = Math.abs(structureWidthMeters * Math.cos(rad)) + Math.abs(structureLengthMeters * Math.sin(rad));
+
+    const deltaLat = (effLengthMeters + rowGap) / latMeters;
+    const deltaLon = (effWidthMeters + colGap) / lonMeters;
+
+    // Si hay que insertar, distribuimos en numRowsMatrix filas, de este a oeste (aumentando/variando longitud)
+    const cols = Math.ceil(missingStr / numRowsMatrix);
+    let strIndex = 0;
+    
+    for (let r = 0; r < numRowsMatrix; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (strIndex >= missingStr) break;
+        
+        // Orientación Este a Oeste -> incrementamos la longitud para ir hacia el Este
+        // Disminuimos la latitud para ir hacia el Sur (o separar filas)
+        const elementLat = currentLat - (r * deltaLat);
+        const elementLon = currentLon + (c * deltaLon);
+        
+        const lastStr = [...parkElements].reverse().find(e => e.type === 'string');
+        const azi = defaultAzi;
+        const col = lastStr ? lastStr.data.color : '#f59e0b';
+        
+        const newPlaced = parkElements.filter(e => e.type === 'string' && e.data.groupId === g.id).length + 1;
+        const name = `${g.name} - String ${newPlaced}`;
+        
+        const el = {
+          id: `string_${Date.now()}_${Math.random()}`,
+          type: 'string',
+          data: { groupId: g.id, azimuth: azi, name: name, color: col, locked: false, hideTelemetry: false },
+          latlng: L.latLng(elementLat, elementLon),
+          layer: null
+        };
+        parkElements.push(el);
+        addedAny = true;
+        strIndex++;
+      }
+    }
+    
+    if (missingStr > 0) {
+       // Avanzamos currentLat para el siguiente grupo si hubo strings
+       const panelsPerString = g.panelsPerString || 1;
+       const colsPerString = Math.ceil(panelsPerString / rowsPerStructure);
+       const deltaLatNext = (rowsPerStructure * lMeters + rowGap) / latMeters;
+       currentLat -= (numRowsMatrix * deltaLatNext);
     }
     
     // Inverters
     const placedInv = parkElements.filter(e => e.type === 'inverter' && e.data.groupId === g.id).length;
     if (placedInv < 1) {
-      currentLat -= deltaLat;
+      currentLat -= (2 / latMeters); // 2m gap for inverter
       
       const lastInv = [...parkElements].reverse().find(e => e.type === 'inverter');
       const col = lastInv ? lastInv.data.color : '#3b82f6';
@@ -667,7 +815,7 @@ function bindMarkerEvents(marker, el) {
   });
 
   marker.on('click', (e) => {
-    L.DomEvent.stopPropagation(e); // prevent map click
+    L.DomEvent.stopPropagation(e.originalEvent); // prevent map click bubbling
     if (e.originalEvent.shiftKey) {
       if (selectedElementIds.includes(el.id)) {
         selectedElementIds = selectedElementIds.filter(id => id !== el.id);
@@ -682,8 +830,7 @@ function bindMarkerEvents(marker, el) {
   });
 
   marker.on('dblclick', (e) => {
-    L.DomEvent.stopPropagation(e);
-    // Double click simply acts as a click now, doesn't force toggle inspector
+    L.DomEvent.stopPropagation(e.originalEvent);
     selectedElementIds = [el.id];
     updateAllVisuals();
     if (globalShowInspector) showInspector();
@@ -716,6 +863,90 @@ function showInspector() {
     return;
   }
 
+  if (selectedElementIds.includes('parcel')) {
+    title.innerHTML = `⚙️ Propiedades del Parque`;
+    const area = areaPoints.length > 2 ? getPolygonArea(areaPoints) : 0;
+    
+    // Bounding box for max width/length
+    let maxLat = -90, minLat = 90, maxLng = -180, minLng = 180;
+    areaPoints.forEach(p => {
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lng > maxLng) maxLng = p.lng;
+      if (p.lng < minLng) minLng = p.lng;
+    });
+    const latMeters = 111320;
+    const lonMeters = 111320 * Math.cos(((maxLat+minLat)/2) * Math.PI / 180);
+    const lengthMeters = (maxLat - minLat) * latMeters;
+    const widthMeters = (maxLng - minLng) * lonMeters;
+
+    const html = `
+      <div class="form-group">
+        <label class="form-label">Superficie Total [m²] (Informativo)</label>
+        <input type="number" class="form-input" value="${area.toFixed(0)}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Largo Máx (N-S) [m]</label>
+          <input type="number" class="form-input" value="${lengthMeters.toFixed(1)}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ancho Máx (E-W) [m]</label>
+          <input type="number" class="form-input" value="${widthMeters.toFixed(1)}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+        </div>
+      </div>
+      <div class="grid-2 mt-md">
+        <div class="form-group">
+          <label class="form-label">Color de Contorno</label>
+          <input type="color" class="form-input" id="insp-parcel-color" value="#FACC15" style="height:40px; padding:2px; cursor:pointer;">
+        </div>
+        <div class="form-group" style="display:flex; flex-direction:column; justify-content:center;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" id="insp-parcel-lock" ${!parcelDragMarker ? 'checked' : ''}> Fijar Posición
+          </label>
+        </div>
+      </div>
+    `;
+    content.innerHTML = html;
+
+    document.getElementById('insp-parcel-color').addEventListener('input', (e) => {
+      if (areaPolygonLayer) {
+        areaPolygonLayer.setStyle({ color: e.target.value });
+      }
+    });
+
+    document.getElementById('insp-parcel-lock').addEventListener('change', (e) => {
+      const locked = e.target.checked;
+      if (locked && parcelDragMarker) {
+        mapInstance.removeLayer(parcelDragMarker);
+        parcelDragMarker = null;
+      } else if (!locked && !parcelDragMarker && areaPolygonLayer) {
+        const center = areaPolygonLayer.getBounds().getCenter();
+        parcelDragMarker = L.marker(center, {
+          draggable: true,
+          icon: L.divIcon({
+            className: '', 
+            html: '<div style="font-size:24px; cursor:move; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🎯</div>', 
+            iconSize: [24, 24], 
+            iconAnchor: [12, 12]
+          })
+        }).addTo(mapInstance);
+        
+        let lastPos = center;
+        parcelDragMarker.on('drag', (ev) => {
+           const newPos = ev.latlng;
+           const dLat = newPos.lat - lastPos.lat;
+           const dLng = newPos.lng - lastPos.lng;
+           areaPoints = areaPoints.map(p => L.latLng(p.lat + dLat, p.lng + dLng));
+           areaPolygonLayer.setLatLngs(areaPoints);
+           lastPos = newPos;
+        });
+      }
+    });
+
+    return;
+  }
+
   if (selectedElementIds.length === 1) {
     // Single Element Inspector
     const el = parkElements.find(e => e.id === selectedElementIds[0]);
@@ -745,12 +976,42 @@ function showInspector() {
     `;
 
     if (el.type === 'string') {
+      const arrConfig = state.get('arrayConfig');
+      const groupDef = (arrConfig.groups || []).find(g => g.id === el.data.groupId);
+      const panel = state.get('panelSpecs');
+      const wPanel = (panel.width || 1134) / 1000;
+      const rows = arrConfig.rowsPerStructure || 1;
+      const wMeters = orientation === 'landscape' ? lPanel : wPanel;
+      const lMeters = orientation === 'landscape' ? wPanel : lPanel;
+      const cols = Math.ceil(panelsPerString / rows);
+      const structureWidthMeters = cols * wMeters; 
+      const structureLengthMeters = rows * lMeters; 
+      
+      const defaultArea = (wPanel * lPanel * panelsPerString).toFixed(2);
+      const displayArea = el.data.area !== undefined ? el.data.area : defaultArea;
+
       html += `
         <div class="form-group">
+          <label class="form-label">Superficie [m²] (Informativo)</label>
+          <input type="number" class="form-input" id="insp-area" value="${displayArea}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Largo Máx [m]</label>
+            <input type="number" class="form-input" value="${structureLengthMeters.toFixed(1)}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ancho Máx [m]</label>
+            <input type="number" class="form-input" value="${structureWidthMeters.toFixed(1)}" readonly style="width:100%; background:var(--bg-tertiary); color:var(--text-secondary); cursor:not-allowed;">
+          </div>
+        </div>
+        <div class="form-group">
           <label class="form-label">Azimut Específico [°]</label>
-          <div style="display:flex; gap:8px;">
-            <input type="range" id="insp-azimuth-slider" min="0" max="360" value="${el.data.azimuth}" style="flex:1;">
-            <input type="number" class="form-input" id="insp-azimuth" value="${el.data.azimuth}" min="0" max="360" style="width:60px;">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="range" id="insp-azimuth-slider" min="0" max="360" value="${el.data.azimuth}" style="flex:1;">
+              <input type="number" class="form-input" id="insp-azimuth" value="${el.data.azimuth}" min="0" max="360" style="width:80px; font-size:1.1rem; font-weight:bold; text-align:center;">
+            </div>
           </div>
         </div>
       `;
@@ -781,6 +1042,10 @@ function showInspector() {
     });
 
     if (el.type === 'string') {
+      document.getElementById('insp-area').addEventListener('input', (e) => {
+        el.data.area = parseFloat(e.target.value) || 0;
+      });
+
       const updateAzi = (val) => {
         el.data.azimuth = parseFloat(val) || 0;
         document.getElementById('insp-azimuth').value = el.data.azimuth;
@@ -874,6 +1139,9 @@ function showInspector() {
 }
 
 function hideInspector() {
+  globalShowInspector = false;
   const inspector = document.getElementById('element-inspector');
   if (inspector) inspector.style.display = 'none';
+  const btnInsp = document.getElementById('btn-toggle-inspector');
+  if (btnInsp) btnInsp.className = 'btn btn-secondary';
 }

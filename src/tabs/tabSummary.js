@@ -25,15 +25,10 @@ export function render() {
   if (r.pr_estimated < 0.7) alerts.push({ type: 'warning', msg: `📈 Performance Ratio bajo: ${(r.pr_estimated*100).toFixed(1)}%` });
 
   return `
-    <div class="page-title-bar">
+      <div class="page-title-bar">
       <div>
         <h2><span class="icon">📋</span> Resumen General</h2>
         <p class="page-subtitle">Resumen completo de la configuración y resultados del campo solar fotovoltaico.</p>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-export-json">💾 Exportar Proyecto</button>
-        <button class="btn btn-secondary btn-sm" id="btn-import-json">📂 Importar Proyecto</button>
-        <input type="file" id="import-file-input" accept=".sol,.json" style="display:none">
       </div>
     </div>
 
@@ -42,7 +37,6 @@ export function render() {
       <button class="btn btn-ghost summary-tab-btn active" data-target="sum-panel" style="border-bottom:2px solid var(--solar-amber); border-radius:0;">☀️ Panel Solar</button>
       <button class="btn btn-ghost summary-tab-btn" data-target="sum-array" style="border-radius:0;">🔗 Configuración Parque</button>
       <button class="btn btn-ghost summary-tab-btn" data-target="sum-cond" style="border-radius:0;">🌡️ Condiciones y Ubicación</button>
-      <button class="btn btn-ghost summary-tab-btn" data-target="sum-results" style="border-radius:0;">⚡ Resultados Eléctricos</button>
     </div>
 
     <div class="tabs-content" style="min-height: 300px;">
@@ -91,15 +85,12 @@ export function render() {
       <div id="sum-cond" class="summary-tab-content" style="display:none;">
         <div class="grid-2" style="gap:var(--space-md); align-items:start;">
           <div class="card">
-            <h3 style="font-size:var(--text-sm); margin-bottom:var(--space-sm);">Condiciones de Simulación Actuales</h3>
+            <h3 style="font-size:var(--text-sm); margin-bottom:var(--space-sm);">Pérdidas de Cableado (Ohmicas)</h3>
             <table class="data-table">
               <tbody>
-                <tr><td>Irradiancia (Pico)</td><td class="mono">${cond.irradiance} W/m²</td></tr>
-                <tr><td>T. Ambiente (Pico)</td><td class="mono">${cond.ambientTemp}°C</td></tr>
-                <tr><td>T. Celda Calculada</td><td class="mono">${r.tCell.toFixed(1)}°C</td></tr>
-                <tr><td>Viento</td><td class="mono">${cond.windSpeed} m/s</td></tr>
                 <tr><td>Pérdidas Cableado</td><td class="mono">${cond.cableLossEnabled ? 'Activado' : 'Desactivado'}</td></tr>
                 ${cond.cableLossEnabled ? `<tr><td>Cable DC</td><td class="mono">${cond.cableLength}m × ${cond.cableSection}mm² (${cond.cableMaterial.toUpperCase()})</td></tr>` : ''}
+                ${cond.cableLossEnabled ? `<tr><td>Resistividad (ρ)</td><td class="mono">${cond.cableMaterial === 'cu' ? '0.0172' : '0.0282'} Ω·mm²/m</td></tr>` : ''}
               </tbody>
             </table>
           </div>
@@ -114,25 +105,6 @@ export function render() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <!-- Resultados Clave -->
-      <div id="sum-results" class="summary-tab-content" style="display:none;">
-        <div class="card" style="border:2px solid var(--solar-amber);">
-          <table class="data-table">
-            <tbody>
-              <tr><td>Potencia Máxima Teórica (Sistema)</td><td class="mono" style="color:var(--solar-amber);font-weight:700;">${(r.pmax_total_system/1000).toFixed(2)} kW</td></tr>
-              <tr><td>Potencia Máxima Neta (En inversor)</td><td class="mono" style="font-weight:700;">${(r.pmax_net/1000).toFixed(2)} kW</td></tr>
-              <tr><td>Vmp (Promedio Sistema)</td><td class="mono">${r.vmp_avg_system.toFixed(1)} V</td></tr>
-              <tr><td>Corriente Total Sistema (Imp)</td><td class="mono">${r.imp_total_system.toFixed(2)} A</td></tr>
-              <tr><td>Caída Tensión DC</td><td class="mono" style="color:var(--solar-${vdStatus.color})">${r.vdPercent.toFixed(2)}% (${vdStatus.message})</td></tr>
-              <tr><td>Fill Factor Real</td><td class="mono">${(r.fillFactor*100).toFixed(1)}%</td></tr>
-              <tr><td>Eficiencia Real del Panel</td><td class="mono">${r.panelEffReal.toFixed(1)}%</td></tr>
-              <tr><td>Performance Ratio (PR) Estimado</td><td class="mono" style="font-weight:700;">${(r.pr_estimated*100).toFixed(1)}%</td></tr>
-              <tr><td>Rendimiento Anual (Yield PVGIS)</td><td class="mono" style="color:var(--solar-green);font-weight:700;">${(r.annualYield/1000).toFixed(1)} MWh/año</td></tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
@@ -162,38 +134,5 @@ export function init() {
     });
   });
 
-  document.getElementById('btn-export-json')?.addEventListener('click', () => {
-    const json = state.exportJSON();
-    const projects = state.getProjects();
-    const current = projects.find(p => p.id === state.get('currentProjectId'));
-    const name = current ? current.name : 'proyecto';
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.sol`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  const importInput = document.getElementById('import-file-input');
-  document.getElementById('btn-import-json')?.addEventListener('click', () => {
-    importInput?.click();
-  });
-
-  importInput?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const success = state.importJSON(ev.target.result);
-      if (success) {
-        alert('Configuración importada correctamente.');
-        navigateTo('summary');
-      } else {
-        alert('Error al importar el archivo.');
-      }
-    };
-    reader.readAsText(file);
-  });
+  // Botones de exportación movidos al Dashboard
 }

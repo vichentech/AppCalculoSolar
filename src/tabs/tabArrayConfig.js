@@ -13,7 +13,8 @@ export function render() {
   const groups = arr.groups || [];
   const invertersCount = groups.length;
   const totalPanels = r.totalPanels;
-  const totalPower = (r.pmax_total_system / 1000).toFixed(2);
+  const panelSpecs = state.get('panelSpecs') || {pmax:0};
+  const totalPower = (totalPanels * panelSpecs.pmax / 1000).toFixed(2);
   
   // Óptimos teóricos básicos
   const optimalTilt = Math.max(0, Math.round(loc.latitude * 0.87)); // Regla heurística común
@@ -51,25 +52,39 @@ export function render() {
     <div class="stats-row" style="margin-bottom: var(--space-lg);">
       <div class="stat-card">
         <div class="stat-icon">📦</div>
-        <div class="stat-label">Inversores / Grupos</div>
+        <div class="stat-label" style="display:flex; align-items:center; justify-content:center; gap:4px;">
+          Inversores / Grupos
+          <span class="tooltip-trigger" style="color:var(--text-secondary); cursor:help; font-size:12px;" data-tooltip="Número de grupos de inversores definidos en la configuración actual.">ℹ️</span>
+        </div>
         <div class="stat-value" id="stat-inverters">${invertersCount}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon">🔢</div>
-        <div class="stat-label">Total Paneles</div>
+        <div class="stat-label" style="display:flex; align-items:center; justify-content:center; gap:4px;">
+          Total Paneles
+          <span class="tooltip-trigger" style="color:var(--text-secondary); cursor:help; font-size:12px;" data-tooltip="Suma total de paneles: Σ (Strings por grupo × Paneles por string).">ℹ️</span>
+        </div>
         <div class="stat-value" id="stat-total-panels">${totalPanels}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon">⚡</div>
-        <div class="stat-label">
+        <div class="stat-label" style="display:flex; align-items:center; justify-content:center; gap:4px;">
           Potencia Pico Total
-          <span class="tooltip-trigger" style="margin-left:4px;" data-tooltip="Desglose:&#10;${r.groupsData ? r.groupsData.map(g => `${g.name}: ${(g.pmax_array/1000).toFixed(2)}kWp`).join('&#10;') : ''}">i</span>
+          <span class="tooltip-trigger" style="color:var(--text-secondary); cursor:help; font-size:12px;" data-tooltip="Potencia nominal teórica (STC).&#10;Fórmula: Σ [Paneles × Pmax_STC_Panel]&#10;No tiene en cuenta pérdidas térmicas, inclinación ni irradiancia (se evalúan en Análisis).">ℹ️</span>
         </div>
-        <div class="stat-value" id="stat-total-power">${totalPower}<span class="stat-unit">kWp</span></div>
+        <div class="stat-value" id="stat-total-power" style="display:flex; flex-direction:column; align-items:center;">
+          <div>${totalPower}<span class="stat-unit">kWp</span></div>
+          <div style="font-size: 0.65rem; color: var(--text-tertiary); font-weight: normal; margin-top: 2px;" id="stat-power-breakdown">
+            ${r.groupsData ? r.groupsData.map(g => `${g.name}: ${(g.numStrings * g.panelsPerString * panelSpecs.pmax / 1000).toFixed(2)}`).join(' | ') : ''}
+          </div>
+        </div>
       </div>
       <div class="stat-card" style="border-color: var(--solar-blue);">
         <div class="stat-icon">📐</div>
-        <div class="stat-label">Inclinación Activa</div>
+        <div class="stat-label" style="display:flex; align-items:center; justify-content:center; gap:4px;">
+          Inclinación Activa
+          <span class="tooltip-trigger" style="color:var(--text-secondary); cursor:help; font-size:12px;" data-tooltip="Ángulo actual de inclinación respecto al plano horizontal. Si usas seguidores solares, varía dinámicamente con la hora.">ℹ️</span>
+        </div>
         <div class="stat-value" id="stat-tilt">${r.activeTilt.toFixed(1)}<span class="stat-unit">°</span></div>
       </div>
     </div>
@@ -77,20 +92,31 @@ export function render() {
     <div class="card" style="padding:0; overflow:hidden;">
       <!-- Pestañas -->
       <div style="display:flex; border-bottom:1px solid var(--border-primary); background:var(--bg-tertiary); overflow-x:auto;">
-        <button class="arr-tab-btn active" data-target="tab-format" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-primary); background:none; border:none; border-bottom:3px solid var(--solar-amber); cursor:pointer; white-space:nowrap;">📏 Formato de String</button>
-        <button class="arr-tab-btn" data-target="tab-groups" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">🔌 Grupos o Inversores</button>
+        <button class="arr-tab-btn active" data-target="tab-groups" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-primary); background:none; border:none; border-bottom:3px solid var(--solar-amber); cursor:pointer; white-space:nowrap;">🔌 Grupos o Inversores</button>
+        <button class="arr-tab-btn" data-target="tab-format" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">📏 Formato de String</button>
         <button class="arr-tab-btn" data-target="tab-structure" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">📐 Estructura y Seguimiento</button>
       </div>
 
       <!-- Contenedor -->
       <div style="padding:var(--space-md);">
         
+        <!-- Tab 2: Grupos de Inversores -->
+        <div class="arr-tab-pane active" id="tab-groups">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-md);">
+            <h3 style="font-size: var(--text-base); margin:0;">🔌 Grupos o Inversores</h3>
+            <button class="btn btn-secondary btn-sm" id="btn-add-group">➕ Añadir Grupo</button>
+          </div>
+          <div id="groups-container">
+            ${groups.map(renderGroupRow).join('')}
+          </div>
+        </div>
+
         <!-- Tab 1: Formato de String -->
-        <div class="arr-tab-pane active" id="tab-format">
+        <div class="arr-tab-pane" id="tab-format" style="display:none;">
           <h3 style="font-size: var(--text-base); margin-bottom:var(--space-md);">📏 Formato Físico del String</h3>
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md);">
             <div class="form-group">
-              <label class="form-label">Orientación Módulos</label>
+              <label class="form-label" style="display:flex; gap:4px; align-items:center;">Orientación Módulos <span class="tooltip-trigger" style="font-size:11px;" data-tooltip="Vertical (Portrait): El panel se coloca con su lado largo en vertical. Horizontal (Landscape): Su lado largo en horizontal. Esto afecta a cómo se dibuja en el mapa de planta.">ℹ️</span></label>
               <select class="form-select ds-arr-select" id="select-panel-orientation" data-key="panelOrientation">
                 <option value="portrait" ${arr.panelOrientation !== 'landscape' ? 'selected' : ''}>Vertical (Portrait)</option>
                 <option value="landscape" ${arr.panelOrientation === 'landscape' ? 'selected' : ''}>Horizontal (Landscape)</option>
@@ -98,28 +124,17 @@ export function render() {
             </div>
             
             <div class="form-group">
-              <label class="form-label">Filas por Estructura</label>
+              <label class="form-label" style="display:flex; gap:4px; align-items:center;">Filas por Estructura <span class="tooltip-trigger" style="font-size:11px;" data-tooltip="Cantidad de paneles dispuestos en el eje corto de la estructura metálica. Por ejemplo, 2 significa '2 en Vertical' (2V) o '2 en Horizontal' (2H).">ℹ️</span></label>
               <input type="number" class="form-input ds-arr-input" id="input-rows-structure" min="1" max="10" value="${arr.rowsPerStructure || 1}" data-key="rowsPerStructure">
             </div>
 
             <div class="form-group">
-              <label class="form-label">Pitch (Distancia filas) <span class="unit">[m]</span></label>
+              <label class="form-label" style="display:flex; gap:4px; align-items:center;">Pitch (Distancia filas) <span class="unit">[m]</span> <span class="tooltip-trigger" style="font-size:11px;" data-tooltip="Distancia (centro a centro) entre cada mesa o seguidor adyacente. Define cuánto espacio hay en total entre hileras.">ℹ️</span></label>
               <div class="form-input-with-unit">
                 <input class="form-input ds-arr-input" type="number" id="input-row-spacing" value="${arr.rowSpacing}" min="0.5" step="0.1" data-key="rowSpacing">
                 <span class="input-unit">m</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Tab 2: Grupos de Inversores -->
-        <div class="arr-tab-pane" id="tab-groups" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-md);">
-            <h3 style="font-size: var(--text-base); margin:0;">🔌 Grupos o Inversores</h3>
-            <button class="btn btn-secondary btn-sm" id="btn-add-group">➕ Añadir Grupo</button>
-          </div>
-          <div id="groups-container">
-            ${groups.map(renderGroupRow).join('')}
           </div>
         </div>
 
@@ -252,10 +267,11 @@ export function init() {
     
     const statPower = document.getElementById('stat-total-power');
     if (statPower) {
-      statPower.innerHTML = `${(freshR.pmax_total_system / 1000).toFixed(2)}<span class="stat-unit">kWp</span>`;
-      const tooltip = freshR.groupsData ? freshR.groupsData.map(g => `${g.name}: ${(g.pmax_array/1000).toFixed(2)}kWp`).join('&#10;') : '';
-      const trigger = statPower.parentElement.querySelector('.tooltip-trigger');
-      if (trigger) trigger.dataset.tooltip = `Desglose:&#10;${tooltip}`;
+      const panelSpecs = state.get('panelSpecs') || {pmax:0};
+      const mainVal = statPower.querySelector('div:first-child');
+      const breakdown = document.getElementById('stat-power-breakdown');
+      if (mainVal) mainVal.innerHTML = `${(freshR.totalPanels * panelSpecs.pmax / 1000).toFixed(2)}<span class="stat-unit">kWp</span>`;
+      if (breakdown) breakdown.innerHTML = freshR.groupsData ? freshR.groupsData.map(g => `${g.name}: ${(g.numStrings * g.panelsPerString * panelSpecs.pmax / 1000).toFixed(2)}`).join(' | ') : '';
     }
 
     document.getElementById('stat-tilt').innerHTML = `${freshR.activeTilt.toFixed(1)}<span class="stat-unit">°</span>`;

@@ -17,7 +17,7 @@ const tabs = [
   { id: 'park-builder', icon: '🏗️', label: 'Diseño en Planta',    section: 'Parque Solar' },
   
   { id: 'summary',      icon: '📋', label: 'Resumen',             section: 'Análisis' },
-  { id: 'results',      icon: '📊', label: 'Gráficas Resultados', section: 'Análisis' },
+  { id: 'results',      icon: '📈', label: 'Resultados y Simulación', section: 'Análisis' },
   { id: 'protections',  icon: '🛡️', label: 'Protecciones',        section: 'Análisis' },
 ];
 

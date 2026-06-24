@@ -46,10 +46,16 @@ function initApp() {
   // Theme toggle
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
 
-  // Mobile menu
+  // Mobile/Desktop menu toggle
   document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-    document.querySelector('.sidebar')?.classList.toggle('open');
-    document.querySelector('.sidebar-overlay')?.classList.toggle('visible');
+    if (window.innerWidth <= 1024) {
+      document.querySelector('.sidebar')?.classList.toggle('open');
+      document.querySelector('.sidebar-overlay')?.classList.toggle('visible');
+    } else {
+      document.body.classList.toggle('sidebar-collapsed');
+      // Trigger a resize event so Leaflet maps and Charts adjust properly
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+    }
   });
 
   document.querySelector('.sidebar-overlay')?.addEventListener('click', () => {

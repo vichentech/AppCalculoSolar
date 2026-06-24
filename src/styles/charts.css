@@ -123,7 +123,7 @@
   gap: var(--space-xs);
   transition: all var(--transition-fast);
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden; removed to allow tooltips to show */
 }
 
 .stat-card::before {
@@ -141,6 +141,7 @@
 .stat-card:hover {
   border-color: var(--solar-amber);
   box-shadow: var(--shadow-glow);
+  z-index: 10;
 }
 
 .stat-card:hover::before {

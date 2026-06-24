@@ -234,6 +234,22 @@ img, svg {
   padding: var(--space-xl) var(--space-2xl);
   min-height: 100vh;
   max-width: calc(100vw - var(--sidebar-width));
+  transition: margin-left var(--transition-base), max-width var(--transition-base);
+}
+
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+
+body.sidebar-collapsed .main-content {
+  margin-left: 0;
+  max-width: 100vw;
+}
+
+body.sidebar-collapsed .mobile-menu-btn {
+  left: var(--space-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .tab-content {
@@ -408,7 +424,7 @@ img, svg {
   }
 
   .mobile-menu-btn {
-    display: flex !important;
+    left: var(--space-md) !important;
   }
 
   .grid-3 {
@@ -434,10 +450,10 @@ img, svg {
 
 /* ---------- Mobile Menu Button ---------- */
 .mobile-menu-btn {
-  display: none;
+  display: flex;
   position: fixed;
   top: var(--space-md);
-  left: var(--space-md);
+  left: calc(var(--sidebar-width) + var(--space-md));
   z-index: 200;
   width: 42px;
   height: 42px;
@@ -450,7 +466,7 @@ img, svg {
   justify-content: center;
   font-size: 1.3rem;
   box-shadow: var(--shadow-lg);
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), left var(--transition-base), background var(--transition-base), color var(--transition-base);
 }
 
 .mobile-menu-btn:active {

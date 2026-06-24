@@ -128,3 +128,43 @@ export async function fetchHistoricalData(lat, lon) {
   const data = await res.json();
   return data.daily;
 }
+
+/**
+ * Fetch historical daily averages for the last year
+ */
+export async function fetchHistoricalYearData(lat, lon) {
+  const end = new Date();
+  end.setDate(end.getDate() - 5); // Archive API usually has a 5-day delay
+  const start = new Date(end);
+  start.setFullYear(start.getFullYear() - 1);
+
+  const fmt = d => d.toISOString().split('T')[0];
+  
+  const params = new URLSearchParams({
+    latitude: lat,
+    longitude: lon,
+    start_date: fmt(start),
+    end_date: fmt(end),
+    daily: 'temperature_2m_mean,shortwave_radiation_sum',
+    timezone: 'auto',
+  });
+
+  const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`);
+  if (!res.ok) throw new Error(`Open-Meteo archive error: ${res.status}`);
+  
+  const data = await res.json();
+  
+  // Convert to array of objects
+  const daily = [];
+  if (data.daily && data.daily.time) {
+    for (let i = 0; i < data.daily.time.length; i++) {
+      daily.push({
+        date: data.daily.time[i],
+        temperature: data.daily.temperature_2m_mean[i],
+        // shortwave_radiation_sum is in MJ/m². Convert to kWh/m²: 1 MJ = 0.277778 kWh
+        ghi: data.daily.shortwave_radiation_sum[i] * 0.277778,
+      });
+    }
+  }
+  return daily;
+}

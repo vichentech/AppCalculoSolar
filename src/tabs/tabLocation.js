@@ -3,7 +3,7 @@
  */
 
 import { state } from '../state.js';
-import { fetchWeatherData } from '../api/openMeteo.js';
+import { fetchWeatherData, fetchHistoricalYearData } from '../api/openMeteo.js';
 import { fetchMonthlyData } from '../api/pvgis.js';
 import { createChart, CHART_COLORS } from '../charts/chartManager.js';
 
@@ -18,7 +18,12 @@ export function render() {
       </div>
     </div>
 
-    <div class="grid-2">
+    <details open style="margin-bottom: var(--space-lg); border: 1px solid var(--border-primary); border-radius: var(--radius-md); background: var(--bg-secondary);">
+      <summary style="padding: var(--space-md); font-size: var(--text-base); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+        <span>🌍 Configuración de Ubicación y Mapa</span>
+      </summary>
+      <div style="padding: var(--space-md); border-top: 1px solid var(--border-primary);">
+        <div class="grid-2">
       <div class="card">
         <div class="card-header">
           <h3>🗺️ Ubicación</h3>
@@ -76,47 +81,63 @@ export function render() {
           </div>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div id="climate-results" style="display:${loc.apiDataLoaded ? 'block' : 'none'};">
-      <div class="card mt-lg">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="display:inline-block; margin-right:8px;">☀️ Datos Históricos de Irradiancia y Temperatura</h3>
-            <span class="badge badge-blue">PVGIS</span>
+    <details open id="climate-results" style="display:${loc.apiDataLoaded ? 'block' : 'none'}; border: 1px solid var(--border-primary); border-radius: var(--radius-md); background: var(--bg-secondary);">
+      <summary style="padding: var(--space-md); font-size: var(--text-base); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+        <span>📊 Resultados de Clima y Radiación</span>
+      </summary>
+      <div style="padding: var(--space-md); border-top: 1px solid var(--border-primary);">
+        <div class="tabs-header mb-md" style="display:flex; gap:16px; border-bottom:1px solid var(--border-primary); padding-bottom:8px;">
+        <button class="btn btn-ghost loc-tab-btn active" data-target="loc-tab-history" style="border-bottom:2px solid var(--solar-amber); border-radius:0;">📅 Datos Históricos</button>
+        <button class="btn btn-ghost loc-tab-btn" data-target="loc-tab-today" style="border-radius:0;">☀️ Datos de Hoy</button>
+      </div>
+
+      <div class="tabs-content">
+        <!-- Tab Datos Históricos -->
+        <div id="loc-tab-history" class="loc-tab-content">
+          <div class="card mb-md">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 style="display:inline-block; margin-right:8px;">📅 Histórico Mensual y Diario (Último Año)</h3>
+                <span class="badge badge-blue">PVGIS & OpenMeteo</span>
+              </div>
+              <select id="select-climate-month" class="form-select" style="width:160px; font-size:0.8rem; padding:4px 8px; height:32px;">
+                <option value="all">Todo el Año</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+            
+            <div id="history-content-container"></div>
           </div>
-          <select id="select-climate-month" class="form-select" style="width:160px; font-size:0.8rem; padding:4px 8px; height:32px;">
-            <option value="all">Todo el Año</option>
-            <option value="1">Enero</option>
-            <option value="2">Febrero</option>
-            <option value="3">Marzo</option>
-            <option value="4">Abril</option>
-            <option value="5">Mayo</option>
-            <option value="6">Junio</option>
-            <option value="7">Julio</option>
-            <option value="8">Agosto</option>
-            <option value="9">Septiembre</option>
-            <option value="10">Octubre</option>
-            <option value="11">Noviembre</option>
-            <option value="12">Diciembre</option>
-          </select>
         </div>
-        <div id="monthly-table-container"></div>
-        <div style="height:320px; margin-top:var(--space-md);">
-          <canvas id="chart-monthly-irradiance"></canvas>
-        </div>
-      </div>
 
-      <div class="card mt-lg">
-        <div class="card-header">
-          <h3>🌡️ Datos Actuales (Open-Meteo)</h3>
-          <span class="badge badge-green">Hoy</span>
-        </div>
-        <div style="height:320px;">
-          <canvas id="chart-hourly-irradiance"></canvas>
+        <!-- Tab Datos de Hoy -->
+        <div id="loc-tab-today" class="loc-tab-content" style="display:none;">
+          <div class="card mb-md">
+            <div class="card-header">
+              <h3>🌡️ Previsión Horaria de Hoy</h3>
+              <span class="badge badge-green">OpenMeteo</span>
+            </div>
+            <div style="height:320px;">
+              <canvas id="chart-hourly-irradiance"></canvas>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+      </div>
+    </details>
   `;
 }
 
@@ -158,6 +179,23 @@ export function init() {
 
   // Fetch climate data
   document.getElementById('btn-fetch-climate')?.addEventListener('click', fetchClimateData);
+
+  // Tabs logic
+  document.querySelectorAll('.loc-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.loc-tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.borderBottom = 'none';
+      });
+      document.querySelectorAll('.loc-tab-content').forEach(c => c.style.display = 'none');
+      
+      e.target.classList.add('active');
+      e.target.style.borderBottom = '2px solid var(--solar-amber)';
+      
+      const targetId = e.target.dataset.target;
+      document.getElementById(targetId).style.display = 'block';
+    });
+  });
 
   // Preset locations
   document.querySelectorAll('.preset-loc').forEach(btn => {
@@ -240,15 +278,17 @@ async function fetchClimateData() {
   showStatus('loading', 'Consultando datos climáticos...');
 
   try {
-    const [pvgisData, weatherData] = await Promise.all([
+    const [pvgisData, weatherData, historicalYearData] = await Promise.all([
       fetchMonthlyData(lat, lon, tilt),
       fetchWeatherData(lat, lon),
+      fetchHistoricalYearData(lat, lon)
     ]);
 
     state.update('location', {
       apiDataLoaded: true,
       monthlyData: pvgisData.monthlyData,
       hourlyData: weatherData.hourly,
+      historicalYearData: historicalYearData,
       pvgisOptimalAngle: pvgisData.optimalAngle,
       pvgisTotals: pvgisData.totals,
     });
@@ -270,9 +310,55 @@ function renderMonthlyData() {
   const selectedMonth = state.get('location.selectedMonth') || 'all';
   const monthly = selectedMonth === 'all' ? allMonthly : allMonthly.filter(m => m.month === parseInt(selectedMonth));
 
+  const historyContainer = document.getElementById('history-content-container');
+  if (!historyContainer) return;
+
+  if (selectedMonth === 'all') {
+    historyContainer.innerHTML = `
+      <div class="tabs-header mb-md" style="display:flex; gap:16px; border-bottom:1px solid var(--border-primary); padding-bottom:8px;">
+        <button class="btn btn-ghost sub-loc-btn active" data-target="sub-loc-table" style="border-bottom:2px solid var(--solar-amber); border-radius:0;">📋 Tabla</button>
+        <button class="btn btn-ghost sub-loc-btn" data-target="sub-loc-chart-monthly" style="border-radius:0;">📊 Gráfica Mensual</button>
+        <button class="btn btn-ghost sub-loc-btn" data-target="sub-loc-chart-daily" style="border-radius:0;">📈 Evolución Diaria</button>
+      </div>
+      
+      <div class="tabs-content">
+        <div id="sub-loc-table" class="sub-loc-content" style="display:block;">
+          <div id="monthly-table-container"></div>
+        </div>
+        <div id="sub-loc-chart-monthly" class="sub-loc-content" style="display:none;">
+          <div style="height:320px;"><canvas id="chart-monthly-irradiance"></canvas></div>
+        </div>
+        <div id="sub-loc-chart-daily" class="sub-loc-content" style="display:none;">
+          <div style="height:320px;"><canvas id="chart-daily-irradiance"></canvas></div>
+        </div>
+      </div>
+    `;
+
+    document.querySelectorAll('.sub-loc-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.sub-loc-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.borderBottom = 'none';
+        });
+        document.querySelectorAll('.sub-loc-content').forEach(c => c.style.display = 'none');
+        e.target.classList.add('active');
+        e.target.style.borderBottom = '2px solid var(--solar-amber)';
+        document.getElementById(e.target.dataset.target).style.display = 'block';
+      });
+    });
+  } else {
+    historyContainer.innerHTML = `
+      <div id="monthly-table-container" class="mb-md"></div>
+      <h4 style="margin-top:var(--space-lg); color:var(--text-secondary); font-size:var(--text-sm);">Evolución Diaria del Mes Seleccionado</h4>
+      <div style="height:320px; margin-top:var(--space-sm);">
+        <canvas id="chart-daily-irradiance"></canvas>
+      </div>
+    `;
+  }
+
   // Table
-  const container = document.getElementById('monthly-table-container');
-  if (container) {
+  const tableContainer = document.getElementById('monthly-table-container');
+  if (tableContainer) {
     let html = `<table class="data-table"><thead><tr>
       <th>Mes</th><th>GHI (kWh/m²)</th><th>Inclinado (kWh/m²)</th><th>Temp. Media (°C)</th>
     </tr></thead><tbody>`;
@@ -285,44 +371,97 @@ function renderMonthlyData() {
       </tr>`;
     });
     html += '</tbody></table>';
-    container.innerHTML = html;
+    tableContainer.innerHTML = html;
   }
 
-  // Chart
-  createChart('chart-monthly-irradiance', {
-    type: 'bar',
-    data: {
-      labels: monthly.map(m => m.monthName.substring(0, 3)),
-      datasets: [
-        {
-          label: 'Irradiancia Inclinada Mensual (kWh/m²)',
-          data: monthly.map(m => m.irradiance || 0),
-          backgroundColor: 'rgba(245, 158, 11, 0.7)',
-          borderColor: CHART_COLORS.amber,
-          borderWidth: 1,
-          borderRadius: 4,
-        },
-        {
-          label: 'Temperatura Media (°C)',
-          data: monthly.map(m => m.temperature || 0),
-          type: 'line',
-          borderColor: CHART_COLORS.red,
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          pointRadius: 4,
-          pointBackgroundColor: CHART_COLORS.red,
-          yAxisID: 'y1',
-          tension: 0.3,
-        },
-      ],
-    },
-    options: {
-      scales: {
-        y: { title: { text: 'Irradiancia Mensual (kWh/m²/mes)' }, beginAtZero: true },
-        y1: { position: 'right', title: { text: 'Temperatura (°C)' }, grid: { drawOnChartArea: false } },
-        x: { title: { text: 'Mes' } },
+  // Chart Monthly
+  const canvasMonthly = document.getElementById('chart-monthly-irradiance');
+  if (canvasMonthly) {
+    createChart('chart-monthly-irradiance', {
+      type: 'bar',
+      data: {
+        labels: monthly.map(m => m.monthName.substring(0, 3)),
+        datasets: [
+          {
+            label: 'Irradiancia Inclinada Mensual (kWh/m²)',
+            data: monthly.map(m => m.irradiance || 0),
+            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+            borderColor: CHART_COLORS.amber,
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+          {
+            label: 'Temperatura Media (°C)',
+            data: monthly.map(m => m.temperature || 0),
+            type: 'line',
+            borderColor: CHART_COLORS.red,
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            pointRadius: 4,
+            pointBackgroundColor: CHART_COLORS.red,
+            yAxisID: 'y1',
+            tension: 0.3,
+          },
+        ],
       },
-    },
-  });
+      options: {
+        scales: {
+          y: { title: { text: 'Irradiancia Mensual (kWh/m²/mes)' }, beginAtZero: true },
+          y1: { position: 'right', title: { text: 'Temperatura (°C)' }, grid: { drawOnChartArea: false } },
+          x: { title: { text: 'Mes' } },
+        },
+      },
+    });
+  }
+
+  // Daily Chart (Historical Year)
+  const canvasDaily = document.getElementById('chart-daily-irradiance');
+  if (canvasDaily) {
+    const allDaily = state.get('location.historicalYearData');
+    if (allDaily && allDaily.length > 0) {
+      let filteredDaily = allDaily;
+      if (selectedMonth !== 'all') {
+        const monthStr = selectedMonth.padStart(2, '0');
+        filteredDaily = allDaily.filter(d => d.date.split('-')[1] === monthStr);
+      }
+
+      createChart('chart-daily-irradiance', {
+        type: 'line',
+        data: {
+          labels: filteredDaily.map(d => d.date),
+          datasets: [
+            {
+              label: 'Irradiancia Global Diaria (kWh/m²)',
+              data: filteredDaily.map(d => d.ghi || 0),
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              borderColor: CHART_COLORS.amber,
+              borderWidth: 1.5,
+              fill: true,
+              tension: 0.2,
+              pointRadius: 1,
+            },
+            {
+              label: 'Temperatura Media (°C)',
+              data: filteredDaily.map(d => d.temperature || 0),
+              type: 'line',
+              borderColor: CHART_COLORS.red,
+              borderWidth: 1.5,
+              backgroundColor: 'transparent',
+              pointRadius: 1,
+              yAxisID: 'y1',
+              tension: 0.2,
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: { title: { text: 'Irradiancia (kWh/m²/día)' }, beginAtZero: true },
+            y1: { position: 'right', title: { text: 'Temperatura (°C)' }, grid: { drawOnChartArea: false } },
+            x: { title: { text: 'Día' }, ticks: { maxTicksLimit: 15 } },
+          },
+        },
+      });
+    }
+  }
 }
 
 function renderHourlyData() {
