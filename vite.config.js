@@ -5,6 +5,7 @@ export default defineConfig(({ mode }) => {
   const n8nBaseUrl = env.VITE_N8N_BASE_URL || 'http://localhost:5678';
 
   return {
+    base: '/solar/',
     root: '.',
     publicDir: 'public',
     build: {

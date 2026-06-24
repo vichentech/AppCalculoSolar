@@ -87,7 +87,7 @@ const initialState = {
   pdfFileName: '',
   savedScenarios: [],
   activeTab: 'dashboard',
-  theme: localStorage.getItem('appsolar-theme') || 'dark',
+  theme: localStorage.getItem('appsolar-theme') || 'light',
 };
 
 // Deep clone helper

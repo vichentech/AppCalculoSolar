@@ -8,7 +8,13 @@ services:
     ports:
       # Formato: "PUERTO_EXTERNO:PUERTO_INTERNO"
       # Como tienes otros servicios en tu VPS, he puesto el 8080.
-      # Si el 8080 está ocupado, cámbialo por el que prefieras (ej. "8085:80" o "3000:80").
-      - "8080:80"
+      # Si el 800 está ocupado, cámbialo por el que prefieras (ej. "8085:80" o "3000:80").
+      - "800:80"
     environment:
       - TZ=Europe/Madrid
+    networks:
+      - infra_default
+
+networks:
+  infra_default:
+    external: true

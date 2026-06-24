@@ -208,7 +208,19 @@ export function render() {
   `;
 }
 
+let isFirstLoad = true;
+
 export function init() {
+  if (isFirstLoad) {
+    isFirstLoad = false;
+    // Forzamos la hora a mediodía la primera vez para asegurar que hay irradiancia y los resultados no son cero
+    if (state.get('conditions.hourOfDay') === undefined || new Date().getHours() > 18) {
+      state.set('conditions.hourOfDay', 12); 
+    }
+    setTimeout(refreshUI, 50);
+    return;
+  }
+
   const r = calculateAll();
   const cond = state.get('conditions');
 
@@ -487,8 +499,9 @@ function renderParametricSection(cond) {
 
   if (currentViewParam === 'chart') {
     container.innerHTML = '<div style="height:350px; position:relative;"><canvas id="canvas-param"></canvas></div>';
-    setTimeout(() => {
-      const labels = dataPoints.map(d => d.label);
+    if (activeResTab === 'res-chart') {
+      setTimeout(() => {
+        const labels = dataPoints.map(d => d.label);
       const datasets = [];
 
       datasets.push({
@@ -539,7 +552,7 @@ function renderParametricSection(cond) {
         }
       });
     }, 50);
-
+    }
   } else {
     // TABLE VIEW
     let html = `

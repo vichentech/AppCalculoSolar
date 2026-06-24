@@ -980,6 +980,9 @@ function showInspector() {
       const groupDef = (arrConfig.groups || []).find(g => g.id === el.data.groupId);
       const panel = state.get('panelSpecs');
       const wPanel = (panel.width || 1134) / 1000;
+      const lPanel = (panel.length || 2278) / 1000;
+      const orientation = arrConfig.orientation || 'landscape';
+      const panelsPerString = groupDef ? groupDef.panelsPerString : (arrConfig.panelsPerString || 20);
       const rows = arrConfig.rowsPerStructure || 1;
       const wMeters = orientation === 'landscape' ? lPanel : wPanel;
       const lMeters = orientation === 'landscape' ? wPanel : lPanel;
