@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VichenSolarApp — Calculadora de Campo Solar Fotovoltaico</title>
+  <title>PimerAppSolar — Calculadora de Campo Solar Fotovoltaico</title>
   <meta name="description" content="Aplicación profesional para ingenieros: cálculo de variables eléctricas, térmicas y de rendimiento de campos solares fotovoltaicos. Curvas I-V, temperaturas de celda, Performance Ratio y más.">
   <meta name="keywords" content="solar, fotovoltaico, PV, calculadora, I-V curve, NOCT, performance ratio, ingeniería solar">
   <meta name="author" content="VichenSolarApp">
@@ -32,8 +32,10 @@
         <div class="sidebar-logo">
           <div class="logo-icon">☀️</div>
           <div>
-            <h1>VichenSolarApp</h1>
-            <div class="logo-sub">Calculadora Fotovoltaica</div>
+            <h1 style="display:flex; align-items:center; gap:4px;">
+              PimerAppSolar 
+              <span class="tooltip-trigger" style="font-size:0.6rem; cursor:help; color:var(--text-tertiary);" title="Hecho por Vicente Vera">©</span>
+            </h1>
           </div>
         </div>
       </div>
@@ -47,17 +49,27 @@
           <span id="theme-icon">🌙</span>
           <span id="theme-label">Modo Oscuro</span>
         </button>
-        <div class="version-text">VichenSolarApp v1.0.0</div>
+        <div class="version-text">PimerAppSolar v1.0.0</div>
+        <div style="font-size: 0.55rem; color: var(--text-tertiary); text-align: center; margin-top: 8px; line-height: 1.3;">
+          © Licencia de uso libre sin responsabilidades.<br>Hecho por Vicente Vera Frias (Pimer S.L.)
+        </div>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main class="main-content">
+      <header class="top-header" style="display:flex; justify-content:flex-end; align-items:center; padding:4px 16px; border-bottom:1px solid var(--border-primary); background:var(--bg-card); position:sticky; top:0; z-index:10; font-size:0.8rem;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="icon" style="color:var(--text-secondary); font-size:0.9rem;">📂</span>
+          <span style="color:var(--text-secondary);">Proyecto Activo:</span>
+          <div id="header-project-name" style="color:var(--solar-amber); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px;">Cargando...</div>
+        </div>
+      </header>
       <div class="tab-content" id="tab-content">
         <!-- Tab content rendered here by router -->
         <div class="loading-overlay">
           <div class="spinner"></div>
-          <span>Cargando VichenSolarApp...</span>
+          <span>Cargando PimerAppSolar...</span>
         </div>
       </div>
     </main>

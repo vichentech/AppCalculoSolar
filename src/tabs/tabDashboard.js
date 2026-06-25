@@ -97,6 +97,7 @@ export function init() {
     if (btnLoad) {
       const id = btnLoad.dataset.id;
       state.loadProject(id);
+      if (window.updateProjectHeader) window.updateProjectHeader();
       navigateTo('panel-manual');
       return;
     }
@@ -113,6 +114,7 @@ export function init() {
         const trimmed = name.trim();
         if (trimmed) {
           state.renameProject(id, trimmed);
+          if (window.updateProjectHeader) window.updateProjectHeader();
           navigateTo('dashboard');
         }
       }
@@ -177,6 +179,7 @@ export function init() {
       if (name !== null) {
         const trimmed = name.trim();
         state.createProject(trimmed || 'Proyecto Solar');
+        if (window.updateProjectHeader) window.updateProjectHeader();
         navigateTo('panel-manual');
       }
       return;
@@ -237,6 +240,7 @@ function handleImportFile(file) {
     const projId = state.importProject(ev.target.result, file.name);
     if (projId) {
       alert('Proyecto importado con éxito.');
+      if (window.updateProjectHeader) window.updateProjectHeader();
       navigateTo('panel-manual');
     } else {
       alert('Error: El archivo no contiene un formato de proyecto válido.');

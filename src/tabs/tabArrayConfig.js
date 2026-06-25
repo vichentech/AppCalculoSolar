@@ -5,12 +5,42 @@
 import { state } from '../state.js';
 import { calculateAll } from '../engine/solarCalc.js';
 
+const CABLE_FIELDS = [
+  { key: 'cableLength', label: 'Longitud Cable DC (Hasta Inversor)', unit: 'm', min: 1, max: 500, step: 1 },
+  { key: 'cableSection', label: 'Sección Cable DC', unit: 'mm²', min: 1.5, max: 240, step: 0.5 },
+];
+
 export function render() {
   const arr = state.get('arrayConfig');
+  const cond = state.get('conditions');
   const loc = state.get('location');
   const r = calculateAll();
   
   const groups = arr.groups || [];
+
+  const renderCable = (g) => `
+    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); margin-bottom: 8px;">
+      <h4 style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--solar-blue);">${g.name}</h4>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-md);">
+        ${CABLE_FIELDS.map(f => `
+          <div class="form-group">
+            <label class="form-label">${f.label} <span class="unit">[${f.unit}]</span></label>
+            <div class="form-input-with-unit">
+              <input class="form-input group-cable-input" type="number" data-group="${g.id}" data-key="${f.key}" value="${g[f.key] !== undefined ? g[f.key] : (cond[f.key] || '')}" min="${f.min}" max="${f.max}" step="${f.step}">
+              <span class="input-unit">${f.unit}</span>
+            </div>
+          </div>
+        `).join('')}
+        <div class="form-group">
+          <label class="form-label">Material del Conductor</label>
+          <select class="form-select group-cable-select" data-group="${g.id}" data-key="cableMaterial">
+            <option value="cu" ${g.cableMaterial === 'cu' || (!g.cableMaterial && cond.cableMaterial === 'cu') ? 'selected' : ''}>Cobre (Cu) — ρ=0.0172</option>
+            <option value="al" ${g.cableMaterial === 'al' || (!g.cableMaterial && cond.cableMaterial === 'al') ? 'selected' : ''}>Aluminio (Al) — ρ=0.0283</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
   const invertersCount = groups.length;
   const totalPanels = r.totalPanels;
   const panelSpecs = state.get('panelSpecs') || {pmax:0};
@@ -95,6 +125,7 @@ export function render() {
         <button class="arr-tab-btn active" data-target="tab-groups" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-primary); background:none; border:none; border-bottom:3px solid var(--solar-amber); cursor:pointer; white-space:nowrap;">🔌 Grupos o Inversores</button>
         <button class="arr-tab-btn" data-target="tab-format" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">📏 Formato de String</button>
         <button class="arr-tab-btn" data-target="tab-structure" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">📐 Estructura y Seguimiento</button>
+        <button class="arr-tab-btn" data-target="tab-conditions" style="padding:12px 20px; font-weight:600; font-size:0.9rem; color:var(--text-secondary); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;">🌡️ Condiciones Instalación</button>
       </div>
 
       <!-- Contenedor -->
@@ -227,6 +258,28 @@ export function render() {
                     <input class="form-input ds-arr-input" type="number" step="0.01" value="${arr.backtrackingCorrection}" data-key="backtrackingCorrection">
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Condiciones Instalación -->
+        <div class="arr-tab-pane" id="tab-conditions" style="display:none;">
+          <h3 style="font-size: var(--text-base); margin-bottom:var(--space-md);">🌡️ Condiciones Instalación y Cableado</h3>
+          <div class="card details-panel" open style="padding:0;">
+            <div class="card-header details-summary" style="cursor:pointer; margin-bottom:0; display:flex; justify-content:space-between; align-items:center; padding:16px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <h3 style="font-size: var(--text-base); margin:0;">🔌 Pérdidas por Cableado DC</h3>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:normal;" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="checkbox-cable-loss" ${cond.cableLossEnabled ? 'checked' : ''} style="accent-color:var(--solar-amber); width:16px; height:16px;">
+                  Habilitar cálculo de pérdidas
+                </label>
+              </div>
+            </div>
+            <div class="details-content" id="cable-content-area" style="opacity: ${cond.cableLossEnabled ? '1' : '0.4'}; pointer-events: ${cond.cableLossEnabled ? 'auto' : 'none'}; transition: opacity 0.2s; padding:16px;">
+              <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Estas pérdidas se aplican individualmente a cada inversor/grupo y se suman a nivel global de parque.</p>
+              <div style="display:flex; flex-direction:column; gap: var(--space-sm);">
+                ${groups.map(renderCable).join('')}
               </div>
             </div>
           </div>
@@ -443,4 +496,41 @@ export function init() {
       updateKPIs();
     });
   }
+
+  // Cable Loss Checkbox
+  const cbCableLoss = document.getElementById('checkbox-cable-loss');
+  if (cbCableLoss) {
+    cbCableLoss.addEventListener('change', (e) => {
+      state.set('conditions.cableLossEnabled', e.target.checked);
+      const area = document.getElementById('cable-content-area');
+      if (area) {
+        area.style.opacity = e.target.checked ? '1' : '0.4';
+        area.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+      }
+      updateKPIs();
+    });
+  }
+
+  // Group Cable inputs
+  const updateGroupCable = (e) => {
+    const groupId = e.target.dataset.group;
+    const key = e.target.dataset.key;
+    const val = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
+    
+    const arr = state.get('arrayConfig');
+    const groups = arr.groups || [];
+    const grp = groups.find(g => g.id === groupId);
+    if (grp) {
+      grp[key] = val;
+      state.set('arrayConfig.groups', groups);
+      updateKPIs();
+    }
+  };
+
+  document.querySelectorAll('.group-cable-input').forEach(input => {
+    input.addEventListener('input', updateGroupCable);
+  });
+  document.querySelectorAll('.group-cable-select').forEach(sel => {
+    sel.addEventListener('change', updateGroupCable);
+  });
 }

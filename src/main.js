@@ -16,7 +16,6 @@ import * as tabDashboard from './tabs/tabDashboard.js';
 import * as tabDatasheet from './tabs/tabDatasheet.js';
 import * as tabPanelManual from './tabs/tabPanelManual.js';
 import * as tabArrayConfig from './tabs/tabArrayConfig.js';
-import * as tabConditions from './tabs/tabConditions.js';
 import * as tabLocation from './tabs/tabLocation.js';
 import * as tabParkBuilder from './tabs/tabParkBuilder.js';
 import * as tabResults from './tabs/tabResults.js';
@@ -33,7 +32,6 @@ function initApp() {
   registerTab('datasheet', tabDatasheet);
   registerTab('panel-manual', tabPanelManual);
   registerTab('array-config', tabArrayConfig);
-  registerTab('conditions', tabConditions);
   registerTab('location', tabLocation);
   registerTab('park-builder', tabParkBuilder);
   registerTab('results', tabResults);
@@ -63,8 +61,17 @@ function initApp() {
     document.querySelector('.sidebar-overlay')?.classList.remove('visible');
   });
 
-  console.log('☀️ VichenSolarApp initialized successfully');
+  window.updateProjectHeader();
+  console.log('☀️ PimerAppSolar initialized successfully');
 }
+
+window.updateProjectHeader = () => {
+  const currentId = state.get('currentProjectId');
+  const projects = typeof state.getProjects === 'function' ? state.getProjects() : [];
+  const proj = projects.find(p => p.id === currentId);
+  const el = document.getElementById('header-project-name');
+  if (el) el.textContent = proj ? proj.name : 'Proyecto Solar';
+};
 
 function toggleTheme() {
   const current = state.get('theme');

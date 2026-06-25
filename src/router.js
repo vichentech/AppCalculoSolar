@@ -13,7 +13,6 @@ const tabs = [
   
   { id: 'location',     icon: '📍', label: 'Localización GPS',    section: 'Parque Solar' },
   { id: 'array-config', icon: '🔗', label: 'Configuración del Parque', section: 'Parque Solar' },
-  { id: 'conditions',   icon: '🌡️', label: 'Condiciones Externas', section: 'Parque Solar' },
   { id: 'park-builder', icon: '🏗️', label: 'Diseño en Planta',    section: 'Parque Solar' },
   
   { id: 'summary',      icon: '📋', label: 'Resumen',             section: 'Análisis' },

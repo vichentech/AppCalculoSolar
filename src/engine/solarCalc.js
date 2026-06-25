@@ -131,35 +131,47 @@ export function calculateAll() {
   // Modificador de irradiancia basado en la posición solar y AOI (Angle of Incidence)
   let G = 0;
   let tAmb = cond.ambientTemp; // max ambient temp
+  const simMode = cond.simMode || 'dynamic';
 
-  if (sunPos.elevation > 0) {
-    // Irradiance curve simple model
-    const aoi = angleOfIncidence(sunPos.zenith, sunPos.azimuth, activeTilt, activeAzimuth);
-    const cosAoi = Math.max(0, Math.cos(aoi * Math.PI / 180));
-    
-    // Base envelope (atmosphere)
-    const atmTransmittance = 0.7; // simplified
-    const maxG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(sunPos.zenith * Math.PI / 180)), 0.678));
-    
-    // Normalize user's max irradiance to the zenith of the day
-    const zenithAtNoon = getSolarPosition(location.latitude, location.longitude, new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0)).zenith;
-    const peakG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(zenithAtNoon * Math.PI / 180)), 0.678));
-    
-    const timeFactor = maxG_theoretical / peakG_theoretical; 
-    
-    // Final irradiance = UserMax * TimeFactor * Cos(AOI)
-    G = cond.irradiance * Math.max(0, timeFactor) * cosAoi;
+  if (simMode === 'fixedMax') {
+    G = cond.irradiance;
+    tAmb = cond.ambientTemp;
+  } else {
+    if (sunPos.elevation > 0) {
+      if (simMode === 'timeOnly') {
+        const zenithAtNoon = getSolarPosition(location.latitude, location.longitude, new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0)).zenith;
+        const elevationFactor = Math.max(0, Math.cos(sunPos.zenith * Math.PI / 180)) / Math.max(0.01, Math.cos(zenithAtNoon * Math.PI / 180));
+        G = cond.irradiance * Math.max(0, Math.min(1, elevationFactor));
+      } else {
+        // Irradiance curve simple model
+        const aoi = angleOfIncidence(sunPos.zenith, sunPos.azimuth, activeTilt, activeAzimuth);
+        const cosAoi = Math.max(0, Math.cos(aoi * Math.PI / 180));
+        
+        // Base envelope (atmosphere)
+        const atmTransmittance = 0.7; // simplified
+        const maxG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(sunPos.zenith * Math.PI / 180)), 0.678));
+        
+        // Normalize user's max irradiance to the zenith of the day
+        const zenithAtNoon = getSolarPosition(location.latitude, location.longitude, new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0)).zenith;
+        const peakG_theoretical = 1367 * Math.pow(atmTransmittance, Math.pow(1 / Math.max(0.01, Math.cos(zenithAtNoon * Math.PI / 180)), 0.678));
+        
+        const timeFactor = maxG_theoretical / peakG_theoretical; 
+        
+        // Final irradiance = UserMax * TimeFactor * Cos(AOI)
+        G = cond.irradiance * Math.max(0, timeFactor) * cosAoi;
 
-    // Apply tracker reality coefficient if tracker is used
-    if (array.trackerType !== 'fixed') {
-       G = G * (array.trackerCorrection || 1.0);
+        // Apply tracker reality coefficient if tracker is used
+        if (array.trackerType !== 'fixed') {
+           G = G * (array.trackerCorrection || 1.0);
+        }
+      }
+      
+      // Simulate Temperature curve (peak is around 14:00 - 15:00)
+      // Tmin is typically Tmax - 10
+      const tMin = cond.ambientTemp - 10;
+      const hourShifted = currentHour - 14.5;
+      tAmb = tMin + (cond.ambientTemp - tMin) * Math.max(0, Math.cos(hourShifted * Math.PI / 12));
     }
-    
-    // Simulate Temperature curve (peak is around 14:00 - 15:00)
-    // Tmin is typically Tmax - 10
-    const tMin = cond.ambientTemp - 10;
-    const hourShifted = currentHour - 14.5;
-    tAmb = tMin + (cond.ambientTemp - tMin) * Math.max(0, Math.cos(hourShifted * Math.PI / 12));
   }
 
   // 2. Cell Temperature
@@ -193,10 +205,33 @@ export function calculateAll() {
     const imp_array = imp_string * g.numStrings;
     const pmax_array = pmax_string * g.numStrings;
 
+    // STC / Máximos
+    const voc_stc_array = panel.voc * g.panelsPerString;
+    const isc_stc_array = panel.isc * g.numStrings;
+    const pmax_stc_array = panel.pmax * g.panelsPerString * g.numStrings;
+
+    // Cable Losses per Group
+    let groupVoltageDrop = 0;
+    let groupVdPercent = 0;
+    let groupCablePowerLoss = 0;
+    
+    if (cond.cableLossEnabled !== false) {
+      const cLength = g.cableLength !== undefined ? g.cableLength : (cond.cableLength || 50);
+      const cSection = g.cableSection !== undefined ? g.cableSection : (cond.cableSection || 6);
+      const cMat = g.cableMaterial !== undefined ? g.cableMaterial : (cond.cableMaterial || 'cu');
+      
+      const cableLoss = calculateVoltageDrop(cLength, imp_array, cSection, cMat);
+      groupVoltageDrop = cableLoss.voltageDrop;
+      groupVdPercent = vmp_array > 0 ? (groupVoltageDrop / vmp_array) * 100 : 0;
+      groupCablePowerLoss = calculateCablePowerLoss(cLength, imp_array, cSection, cMat);
+    }
+
     return {
       ...g,
       voc_string, vmp_string, isc_string, imp_string, pmax_string,
-      voc_array, vmp_array, isc_array, imp_array, pmax_array
+      voc_array, vmp_array, isc_array, imp_array, pmax_array,
+      voc_stc_array, isc_stc_array, pmax_stc_array,
+      groupVoltageDrop, groupVdPercent, groupCablePowerLoss
     };
   });
 
@@ -207,32 +242,17 @@ export function calculateAll() {
   // Average voltage for global cable loss estimate (simplified)
   const vmp_avg_system = groupsData.length > 0 ? groupsData.reduce((acc, g) => acc + g.vmp_array, 0) / groupsData.length : 0;
 
-  // 6. Cable losses
-  let voltageDrop = 0;
-  let vdPercent = 0;
-  let cablePowerLoss = 0;
-  let cableResistance = 0;
-
-  if (cond.cableLossEnabled !== false) {
-    const cableLoss = calculateVoltageDrop(
-      cond.cableLength,
-      imp_total_system,
-      cond.cableSection,
-      cond.cableMaterial
-    );
-    voltageDrop = cableLoss.voltageDrop;
-    vdPercent = vmp_avg_system > 0 ? (voltageDrop / vmp_avg_system) * 100 : 0;
-    cableResistance = cableLoss.totalResistance;
-    cablePowerLoss = calculateCablePowerLoss(
-      cond.cableLength,
-      imp_total_system,
-      cond.cableSection,
-      cond.cableMaterial
-    );
-  }
+  // 6. Global Cable losses aggregated
+  const voltageDrop = groupsData.length > 0 ? groupsData.reduce((acc, g) => acc + g.groupVoltageDrop, 0) / groupsData.length : 0; // Avg
+  const cablePowerLoss = groupsData.reduce((acc, g) => acc + g.groupCablePowerLoss, 0);
+  const vdPercent = vmp_avg_system > 0 ? (voltageDrop / vmp_avg_system) * 100 : 0;
+  const cableResistance = 0; // No longer globally aggregated
 
   const vmp_net = vmp_avg_system - voltageDrop;
   const pmax_net = pmax_total_system - cablePowerLoss;
+
+  const voc_stc_total = groupsData.length > 0 ? groupsData[0].voc_stc_array : 0; // Aproximación (asumiendo voc de strings paralelos)
+  const isc_stc_total = groupsData.reduce((acc, g) => acc + g.isc_stc_array, 0);
 
   // 7. Efficiency and performance metrics
   const fillFactor = calculateFillFactor(vmp_adj, imp_adj, voc_adj, isc_adj);
@@ -286,6 +306,8 @@ export function calculateAll() {
     imp_total_system,
     pmax_total_system,
     vmp_avg_system,
+    isc_stc_total,
+    voc_stc_total,
 
     // Cable
     voltageDrop,

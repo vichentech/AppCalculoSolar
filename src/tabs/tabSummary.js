@@ -15,8 +15,8 @@ export function render() {
   const loc = state.get('location');
   const vdStatus = getVoltageDropStatus(r.vdPercent);
 
-  const totalPanels = arr.invertersCount * arr.numStrings * arr.panelsPerString;
-
+  const groups = arr.groups || [];
+  const totalPanels = groups.reduce((sum, g) => sum + ((g.numStrings || 1) * (g.panelsPerString || 1)), 0);
   const alerts = [];
   if (r.vdPercent > 3) alerts.push({ type: 'danger', msg: `⚠️ Caída de tensión excesiva: ${r.vdPercent.toFixed(1)}% (máx. recomendado: 2%)` });
   if (r.tCell > 70) alerts.push({ type: 'warning', msg: `🌡️ Temperatura de celda muy alta: ${r.tCell.toFixed(1)}°C` });
@@ -65,13 +65,37 @@ export function render() {
       <!-- Configuración Array -->
       <div id="sum-array" class="summary-tab-content" style="display:none;">
         <div class="card">
-          <table class="data-table">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Grupo / Inversor</th>
+                  <th>Strings en paralelo</th>
+                  <th>Paneles/String (Serie)</th>
+                  <th>Subtotal Paneles</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${groups.map(g => `
+                  <tr>
+                    <td><strong>${g.name}</strong></td>
+                    <td class="mono text-center">${g.numStrings || 1}</td>
+                    <td class="mono text-center">${g.panelsPerString || 1}</td>
+                    <td class="mono text-center" style="font-weight:600;">${(g.numStrings || 1) * (g.panelsPerString || 1)}</td>
+                  </tr>
+                `).join('')}
+                <tr style="border-top:2px solid var(--border-primary); background:rgba(0,0,0,0.02);">
+                  <td style="font-weight:700;">TOTAL PLANTA</td>
+                  <td colspan="2"></td>
+                  <td class="mono text-center" style="font-weight:700; color:var(--solar-blue);">${totalPanels}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <table class="data-table mt-md">
             <tbody>
-              <tr><td>Inversores / Grupos</td><td class="mono">${arr.invertersCount}</td></tr>
-              <tr><td>Strings por Grupo</td><td class="mono">${arr.numStrings}</td></tr>
-              <tr><td>Paneles por String</td><td class="mono">${arr.panelsPerString}</td></tr>
-              <tr><td>Total Paneles (Planta)</td><td class="mono">${totalPanels}</td></tr>
-              <tr><td>Potencia Pico Total</td><td class="mono">${((totalPanels * panel.pmax)/1000).toFixed(2)} kWp</td></tr>
+              <tr><td style="font-weight:700; width:50%;">Potencia Pico Total</td><td class="mono" style="color:var(--solar-green); font-weight:700;">${((totalPanels * panel.pmax)/1000).toFixed(2)} kWp</td></tr>
               <tr><td>Inclinación (Tilt)</td><td class="mono">${arr.useOptimalTilt ? 'Óptima Automática' : arr.tiltAngle + '°'}</td></tr>
               <tr><td>Azimut</td><td class="mono">${arr.useOptimalTilt ? 'Óptimo Automático' : arr.azimuthAngle + '°'}</td></tr>
               <tr><td>Pitch (Separación filas)</td><td class="mono">${arr.rowSpacing} m</td></tr>
@@ -89,8 +113,12 @@ export function render() {
             <table class="data-table">
               <tbody>
                 <tr><td>Pérdidas Cableado</td><td class="mono">${cond.cableLossEnabled ? 'Activado' : 'Desactivado'}</td></tr>
-                ${cond.cableLossEnabled ? `<tr><td>Cable DC</td><td class="mono">${cond.cableLength}m × ${cond.cableSection}mm² (${cond.cableMaterial.toUpperCase()})</td></tr>` : ''}
-                ${cond.cableLossEnabled ? `<tr><td>Resistividad (ρ)</td><td class="mono">${cond.cableMaterial === 'cu' ? '0.0172' : '0.0282'} Ω·mm²/m</td></tr>` : ''}
+                ${cond.cableLossEnabled ? (arr.groups || []).map(g => `
+                  <tr>
+                    <td>${g.name}</td>
+                    <td class="mono">${g.cableLength !== undefined ? g.cableLength : (cond.cableLength||50)}m × ${g.cableSection !== undefined ? g.cableSection : (cond.cableSection||6)}mm² (${(g.cableMaterial || cond.cableMaterial || 'cu').toUpperCase()})</td>
+                  </tr>
+                `).join('') : ''}
               </tbody>
             </table>
           </div>

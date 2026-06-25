@@ -446,12 +446,11 @@ input[type="range"]::-moz-range-thumb {
   white-space: pre-wrap;
   width: max-content;
   max-width: 300px;
-  box-shadow: var(--shadow-xl);
+  z-index: 9999;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: all var(--transition-fast);
-  z-index: 1000;
 }
 
 .tooltip-trigger:hover::after {

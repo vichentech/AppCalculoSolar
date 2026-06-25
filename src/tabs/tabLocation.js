@@ -316,17 +316,17 @@ function renderMonthlyData() {
   if (selectedMonth === 'all') {
     historyContainer.innerHTML = `
       <div class="tabs-header mb-md" style="display:flex; gap:16px; border-bottom:1px solid var(--border-primary); padding-bottom:8px;">
-        <button class="btn btn-ghost sub-loc-btn active" data-target="sub-loc-table" style="border-bottom:2px solid var(--solar-amber); border-radius:0;">📋 Tabla</button>
-        <button class="btn btn-ghost sub-loc-btn" data-target="sub-loc-chart-monthly" style="border-radius:0;">📊 Gráfica Mensual</button>
+        <button class="btn btn-ghost sub-loc-btn active" data-target="sub-loc-chart-monthly" style="border-bottom:2px solid var(--solar-amber); border-radius:0;">📊 Gráfica Mensual</button>
+        <button class="btn btn-ghost sub-loc-btn" data-target="sub-loc-table" style="border-radius:0;">📋 Tabla</button>
         <button class="btn btn-ghost sub-loc-btn" data-target="sub-loc-chart-daily" style="border-radius:0;">📈 Evolución Diaria</button>
       </div>
       
       <div class="tabs-content">
-        <div id="sub-loc-table" class="sub-loc-content" style="display:block;">
-          <div id="monthly-table-container"></div>
-        </div>
-        <div id="sub-loc-chart-monthly" class="sub-loc-content" style="display:none;">
+        <div id="sub-loc-chart-monthly" class="sub-loc-content" style="display:block;">
           <div style="height:320px;"><canvas id="chart-monthly-irradiance"></canvas></div>
+        </div>
+        <div id="sub-loc-table" class="sub-loc-content" style="display:none;">
+          <div id="monthly-table-container"></div>
         </div>
         <div id="sub-loc-chart-daily" class="sub-loc-content" style="display:none;">
           <div style="height:320px;"><canvas id="chart-daily-irradiance"></canvas></div>
@@ -360,7 +360,10 @@ function renderMonthlyData() {
   const tableContainer = document.getElementById('monthly-table-container');
   if (tableContainer) {
     let html = `<table class="data-table"><thead><tr>
-      <th>Mes</th><th>GHI (kWh/m²)</th><th>Inclinado (kWh/m²)</th><th>Temp. Media (°C)</th>
+      <th>Mes</th>
+      <th>GHI (kWh/m²) <span class="tooltip-trigger" style="cursor:help; font-size:11px;" data-tooltip="Irradiancia Global Horizontal: radiación total recibida en una superficie horizontal">ℹ️</span></th>
+      <th>Inclinado (kWh/m²) <span class="tooltip-trigger" style="cursor:help; font-size:11px;" data-tooltip="Radiación total recibida sobre el plano inclinado del panel solar">ℹ️</span></th>
+      <th>Temp. Media (°C)</th>
     </tr></thead><tbody>`;
     monthly.forEach(m => {
       html += `<tr>
