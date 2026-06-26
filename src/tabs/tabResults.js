@@ -63,7 +63,7 @@ export function render() {
   return `
     <div class="page-title-bar">
       <div>
-        <h2><span class="icon">📊</span> Resultados y Simulación Dinámica <span style="font-size:0.9rem; color:var(--text-secondary); margin-left:var(--space-sm); font-weight:normal;">[${projectName}]</span></h2>
+        <h2><span class="icon">📊</span> Resultados y Simulación Dinámica</h2>
         <p class="page-subtitle">Analiza el rendimiento del parque hora a hora y sus condiciones ambientales.</p>
       </div>
     </div>
