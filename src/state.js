@@ -197,12 +197,7 @@ class StateManager {
       panelSpecs: deepClone(this.state.panelSpecs),
       arrayConfig: deepClone(this.state.arrayConfig),
       conditions: deepClone(this.state.conditions),
-      location: {
-        latitude: this.state.location.latitude,
-        longitude: this.state.location.longitude,
-        altitude: this.state.location.altitude,
-        locationName: this.state.location.locationName,
-      },
+      location: deepClone(this.state.location),
       cellTemp: deepClone(this.state.cellTemp),
     };
     this._saveProjectsList(projects);
@@ -416,12 +411,7 @@ class StateManager {
         panelSpecs: this.state.panelSpecs,
         arrayConfig: this.state.arrayConfig,
         conditions: this.state.conditions,
-        location: {
-          latitude: this.state.location.latitude,
-          longitude: this.state.location.longitude,
-          altitude: this.state.location.altitude,
-          locationName: this.state.location.locationName,
-        },
+        location: this.state.location,
         cellTemp: this.state.cellTemp,
       }
     };

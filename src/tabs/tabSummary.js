@@ -56,7 +56,7 @@ export function render() {
               <tr><td>Eficiencia</td><td class="mono">${panel.efficiency || '—'}%</td></tr>
               <tr><td>Coef. β(Voc)</td><td class="mono">${panel.tempCoeffVoc || '—'} %/°C</td></tr>
               <tr><td>Coef. γ(Pmax)</td><td class="mono">${panel.tempCoeffPmax || '—'} %/°C</td></tr>
-              <tr><td>Dimensiones</td><td class="mono">${panel.length || '—'}×${panel.width || '—'} mm</td></tr>
+              <tr><td>Dimensiones</td><td class="mono">${panel.length || '—'}×${panel.width || '—'} mm${(panel.length && panel.width) ? ` (${((panel.length * panel.width) / 1000000).toFixed(2)} m²)` : ''}</td></tr>
             </tbody>
           </table>
         </div>

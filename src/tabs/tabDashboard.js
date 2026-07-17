@@ -17,9 +17,26 @@ export function render() {
     
     // Calculate some basic stats from project state
     const pmax = p.state?.panelSpecs?.pmax || 0;
-    const numStrings = p.state?.arrayConfig?.numStrings || 0;
-    const panelsPerString = p.state?.arrayConfig?.panelsPerString || 0;
-    const peakPower = ((pmax * numStrings * panelsPerString) / 1000).toFixed(2);
+    
+    let totalPanels = 0;
+    let estructuraText = '0 Paneles';
+    
+    if (p.state?.arrayConfig?.groups && p.state.arrayConfig.groups.length > 0) {
+      totalPanels = p.state.arrayConfig.groups.reduce((acc, g) => acc + ((g.numStrings || 0) * (g.panelsPerString || 0)), 0);
+      if (p.state.arrayConfig.groups.length === 1) {
+        estructuraText = `${p.state.arrayConfig.groups[0].numStrings}x${p.state.arrayConfig.groups[0].panelsPerString} Paneles`;
+      } else {
+        estructuraText = `${totalPanels} Paneles (${p.state.arrayConfig.groups.length} Grupos)`;
+      }
+    } else {
+      // Legacy fallback
+      const numStrings = p.state?.arrayConfig?.numStrings || 0;
+      const panelsPerString = p.state?.arrayConfig?.panelsPerString || 0;
+      totalPanels = numStrings * panelsPerString;
+      estructuraText = `${numStrings}x${panelsPerString} Paneles`;
+    }
+
+    const peakPower = ((pmax * totalPanels) / 1000).toFixed(2);
     const locName = p.state?.location?.locationName || 'Sin ubicación';
 
     return `
@@ -36,7 +53,7 @@ export function render() {
           </div>
           <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
             <span>Estructura:</span>
-            <strong>${numStrings}x${panelsPerString} Paneles</strong>
+            <strong>${estructuraText}</strong>
           </div>
           <div style="display:flex; justify-content:space-between;">
             <span>Ubicación:</span>
