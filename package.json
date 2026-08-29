@@ -15,6 +15,7 @@
     "appId": "com.vichensolarapp.desktop",
     "productName": "Vichen Solar App",
     "icon": "public/icon.png",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "dist-electron-bin"
     },
