@@ -294,6 +294,15 @@
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
 }
 
+.form-select-sm {
+  padding: 5px 28px 5px 10px;
+  font-size: var(--text-xs);
+  min-height: 32px;
+  line-height: 1.4;
+  background-position: right 8px center;
+  background-size: 10px 10px;
+}
+
 /* ---------- Sliders ---------- */
 .slider-group {
   margin-bottom: var(--space-lg);

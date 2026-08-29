@@ -17,6 +17,8 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1024,
     height: 768,
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, '../public/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       // Security best practices:
@@ -27,8 +29,8 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
-    // Open DevTools in dev mode
-    win.webContents.openDevTools();
+    // Open DevTools in dev mode (comentado a petición)
+    // win.webContents.openDevTools();
   } else {
     // In production, load the built HTML
     win.loadFile(indexHtml);

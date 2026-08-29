@@ -15,8 +15,7 @@ const tabs = [
   { id: 'array-config', icon: '🔗', label: 'Configuración del Parque', section: 'Parque Solar' },
   { id: 'park-builder', icon: '🏗️', label: 'Diseño en Planta',    section: 'Parque Solar' },
   
-  { id: 'summary',      icon: '📋', label: 'Resumen',             section: 'Análisis' },
-  { id: 'results',      icon: '📈', label: 'Resultados y Simulación', section: 'Análisis' },
+  { id: 'results',      icon: '📊', label: 'Resumen y Simulación', section: 'Análisis' },
   { id: 'protections',  icon: '🛡️', label: 'Protecciones',        section: 'Análisis' },
 ];
 
@@ -51,6 +50,7 @@ export function initRouter() {
  * Navigate to a specific tab
  */
 export function navigateTo(tabId) {
+  if (tabId === 'summary') tabId = 'results';
   const tab = tabs.find(t => t.id === tabId);
   if (!tab) return;
 

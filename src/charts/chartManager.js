@@ -112,7 +112,14 @@ export function createChart(canvasId, config) {
     ...mergedConfig.options.plugins,
     ...(config.options?.plugins || {}),
     legend: { ...mergedConfig.options.plugins.legend, ...(config.options?.plugins?.legend || {}) },
-    tooltip: { ...mergedConfig.options.plugins.tooltip, ...(config.options?.plugins?.tooltip || {}) },
+    tooltip: { 
+      ...mergedConfig.options.plugins.tooltip, 
+      ...(config.options?.plugins?.tooltip || {}),
+      callbacks: {
+        ...(mergedConfig.options.plugins?.tooltip?.callbacks || {}),
+        ...(config.options?.plugins?.tooltip?.callbacks || {})
+      }
+    },
   };
 
   const chart = new Chart(ctx, mergedConfig);
